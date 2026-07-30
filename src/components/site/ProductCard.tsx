@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StockBadge } from "@/components/site/StockBadge";
 import { formatZAR } from "@/lib/format";
@@ -15,7 +14,7 @@ export function ProductCard({ product }: { product: ProductRow }) {
   const buyable = product.selling_price_incl_vat != null && product.stock_status !== "out_of_stock";
 
   return (
-    <Card className="group flex h-full flex-col overflow-hidden p-0 transition-shadow hover:shadow-lg">
+    <div className="group flex h-full flex-col">
       <Link
         to="/product/$slug"
         params={{ slug: product.slug }}
@@ -26,7 +25,7 @@ export function ProductCard({ product }: { product: ProductRow }) {
             src={image}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain p-6 transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -34,31 +33,41 @@ export function ProductCard({ product }: { product: ProductRow }) {
           </div>
         )}
         <div className="absolute left-3 top-3 flex flex-wrap gap-1">
-          {product.is_promotional && <Badge className="border-0 bg-primary text-primary-foreground">Promo</Badge>}
-          {product.is_new_arrival && <Badge className="border-0 bg-cyan text-cyan-foreground">New</Badge>}
+          {product.is_promotional && (
+            <Badge className="border-0 bg-primary text-[10px] uppercase tracking-wider text-primary-foreground">
+              Promo
+            </Badge>
+          )}
+          {product.is_new_arrival && (
+            <Badge className="border-0 bg-foreground text-[10px] uppercase tracking-wider text-background">New</Badge>
+          )}
           {product.is_clearance && (
-            <Badge className="border-0 bg-destructive text-destructive-foreground">Clearance</Badge>
+            <Badge className="border-0 bg-destructive text-[10px] uppercase tracking-wider text-destructive-foreground">
+              Clearance
+            </Badge>
           )}
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+      <div className="flex flex-1 flex-col items-center gap-1.5 px-2 py-4 text-center">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           {product.brands?.name ?? "TechNest"}
         </p>
         <Link
           to="/product/$slug"
           params={{ slug: product.slug }}
-          className="line-clamp-2 font-semibold leading-snug hover:text-primary"
+          className="line-clamp-2 text-sm font-medium transition-colors hover:text-primary"
         >
           {product.name}
         </Link>
         <StockBadge status={product.stock_status} quantity={product.quantity} />
-        <div className="mt-auto pt-2">
-          <p className="font-display text-lg font-bold">{formatZAR(product.selling_price_incl_vat)}</p>
-          <p className="text-xs text-muted-foreground">VAT incl.</p>
+        <p className="mt-1 font-display text-base font-bold text-primary">
+          {formatZAR(product.selling_price_incl_vat)}
+        </p>
+        <div className="mt-auto w-full pt-3">
           <Button
-            className="mt-3 w-full"
+            variant="outline"
+            className="w-full rounded-full border-foreground/15 text-xs uppercase tracking-[0.12em] transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground"
             disabled={!buyable}
             onClick={() => {
               cart.add({
@@ -77,6 +86,6 @@ export function ProductCard({ product }: { product: ProductRow }) {
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
