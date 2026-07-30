@@ -268,7 +268,14 @@ async function run() {
         let columnOffset = 0;
         for (const off of [0, 1]) {
           const t = shifted(off);
-          if (cellText(row.getCell(t.code)) && cellText(row.getCell(t.description)) && cellText(row.getCell(t.specifications)) && cellText(row.getCell(t.availability))) {
+          const codeT = cellText(row.getCell(t.code));
+          const descT = cellText(row.getCell(t.description));
+          const specT = cellText(row.getCell(t.specifications));
+          const availT = cellText(row.getCell(t.availability));
+          // A banner/heading row is merged across the whole row, so every probed cell
+          // returns the same text — that is not a product row.
+          const isBanner = codeT === descT || descT === specT || specT === availT;
+          if (codeT && descT && specT && availT && !isBanner) {
             c = t;
             columnOffset = off;
             break;
