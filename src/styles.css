@@ -40,6 +40,7 @@
   --color-navy-foreground: var(--navy-foreground);
   --color-cyan: var(--cyan);
   --color-cyan-foreground: var(--cyan-foreground);
+  --color-highlight: var(--highlight);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -86,6 +87,7 @@
   --navy-foreground: oklch(0.97 0.01 250);
   --cyan: oklch(0.78 0.14 200);
   --cyan-foreground: oklch(0.22 0.06 250);
+  --highlight: oklch(0.86 0.17 95);
   --success: oklch(0.62 0.15 152);
   --success-foreground: oklch(0.99 0.005 250);
   --warning: oklch(0.78 0.15 75);
@@ -129,6 +131,7 @@
   --navy-foreground: oklch(0.97 0.01 250);
   --cyan: oklch(0.78 0.14 200);
   --cyan-foreground: oklch(0.18 0.05 264);
+  --highlight: oklch(0.88 0.17 95);
   --success: oklch(0.68 0.15 152);
   --success-foreground: oklch(0.15 0.05 264);
   --warning: oklch(0.8 0.15 75);
