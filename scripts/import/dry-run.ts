@@ -235,9 +235,7 @@ async function run() {
 
       ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         stats.rows_examined++;
-        const c = wbDef.cols;
-        const code = cellText(row.getCell(c.code));
-        const desc = cellText(row.getCell(c.description));
+        const base = wbDef.cols;
         const firstCell = cellText(row.getCell(1));
         const joined = row.values ? clean(Object.values(row.values as any).map((v: any) => (typeof v === "object" ? cellText({ value: v } as any) : v)).join(" ")) : "";
 
@@ -253,25 +251,34 @@ async function run() {
           excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 120), reason: "blank_or_decorative" });
           return;
         }
-        // Merged banner rows (section headings / footers) span the CODE column.
-        const codeCell: any = row.getCell(c.code);
-        const isBanner = !!codeCell?.isMerged && codeCell?.master?.address !== codeCell?.address;
-        // Section heading: only column 1 (or nothing in code/desc columns) has content
-        if (isBanner || (!code && !desc)) {
 
-          const isFooter = /(e&oe|terms|conditions|valid|subject to|prices|disclaimer|errors|excl|vat|contact|tel:|email)/i.test(joined) && joined.length > 25;
+        // A product row must carry code + description + specifications + availability.
+        // Some rows are shifted one column right (spacer-column layout change), so probe
+        // the expected columns and a one-column-right shift before rejecting the row.
+        const shifted = (off: number) => ({ image: base.image, code: base.code + off, description: base.description + off, specifications: base.specifications + off, availability: base.availability + off, dealer: base.dealer + off, promo: base.promo + off });
+        let c: ReturnType<typeof shifted> | null = null;
+        let columnOffset = 0;
+        for (const off of [0, 1]) {
+          const t = shifted(off);
+          if (cellText(row.getCell(t.code)) && cellText(row.getCell(t.description)) && cellText(row.getCell(t.specifications)) && cellText(row.getCell(t.availability))) {
+            c = t;
+            columnOffset = off;
+            break;
+          }
+        }
+
+        if (!c) {
+          const isFooter = /(e&oe|terms|conditions|subject to|disclaimer|errors|reserve the right|excl|contact|tel:|email)/i.test(joined) && joined.length > 25;
           if (isFooter) {
             stats.footer_disclaimer_rows++;
             excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "footer_or_disclaimer" });
+          } else if (cellText(row.getCell(base.code)) || cellText(row.getCell(base.code + 1))) {
+            excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "incomplete_product_row" });
           } else if (firstCell || joined) {
             currentSection = clean(firstCell || joined).toUpperCase();
             stats.section_heading_rows++;
             excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: currentSection, reason: "section_heading" });
           }
-          return;
-        }
-        if (!code) {
-          excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "missing_sku" });
           return;
         }
 
@@ -286,9 +293,10 @@ async function run() {
         const avail = mapAvailability(availabilityRaw);
         const promo = parsePrice(rawText(row.getCell(c.promo)));
         const dealer = parsePrice(rawText(row.getCell(c.dealer)));
-        const brand = detectBrand(sku, name, specs.text, currentSection ?? "");
-        const cat = mapCategory(currentSection ?? "");
+        const brand = detectBrand(sku, name, specs.text, currentSection ?? "", wbDef.label);
+        const cat = mapCategory(currentSection ?? "", sku, name);
         const anchors = anchoredByRow.get(rowNumber) ?? [];
+
 
         const warnings: string[] = [];
         if (!promo.value) warnings.push(`no valid promotional price (${promo.reason}); no customer selling price can be calculated`);
