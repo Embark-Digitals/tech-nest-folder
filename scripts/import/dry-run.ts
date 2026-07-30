@@ -408,27 +408,45 @@ async function run() {
       if (r.validation_status === "ready") r.validation_status = "review_required";
     }
 
+  // Upsert-by-SKU reconciliation against the existing catalogue (read-only snapshot).
+  const overlapping = EXISTING_SKUS.filter((s) => bySku.has(s.toUpperCase()));
+  const existingOnly = EXISTING_SKUS.filter((s) => !bySku.has(s.toUpperCase()));
+  const newSkus = [...bySku.keys()].filter((s) => !EXISTING_SKUS.map((e) => e.toUpperCase()).includes(s));
+
   const combined = {
     total_valid_products: all.length,
     unique_skus: bySku.size,
     duplicate_skus: duplicates.length,
+    with_promotional_price: all.filter((r) => r.promotional_price_ex_vat).length,
     ready_for_staging: all.filter((r) => r.validation_status === "ready").length,
     pricing_review_required: all.filter((r) => r.validation_status === "pricing_review_required").length,
     brand_review_required: all.filter((r) => r.brand_mapping_status === "manual_review").length,
     category_review_required: all.filter((r) => r.category_mapping_status === "manual_review").length,
+    with_images: all.filter((r) => r.has_anchored_image).length,
     without_images: all.filter((r) => !r.has_anchored_image).length,
     new_arrivals: all.filter((r) => r.is_new_arrival).length,
     clearance: all.filter((r) => r.is_clearance).length,
     discontinued: all.filter((r) => r.is_discontinued).length,
     excluded_rows: excluded.length,
     exclusion_reasons: excluded.reduce((acc: Record<string, number>, e) => ((acc[e.reason] = (acc[e.reason] ?? 0) + 1), acc), {}),
-    expected_catalogue_after_import: 18 + bySku.size,
+    reconciliation: {
+      existing_products: EXISTING_SKUS.length,
+      supplier_products: bySku.size,
+      overlapping_skus: overlapping.length,
+      overlapping_sku_list: overlapping,
+      existing_skus_not_in_supplier: existingOnly.length,
+      new_supplier_skus: newSkus.length,
+      products_to_update: overlapping.length,
+      products_to_create: newSkus.length,
+      expected_final_total: EXISTING_SKUS.length + bySku.size - overlapping.length,
+    },
     database_writes: 0,
     storage_uploads: 0,
     existing_demo_products_changed: 0,
     dry_run: DRY_RUN,
     pricing_assumptions: { markup_rate: MARKUP_RATE, vat_rate: VAT_RATE, source: "dry-run assumption (settings not read from database)" },
   };
+
 
   const csv = (rows: Row[], cols: string[]) =>
     [cols.join(","), ...rows.map((r) => cols.map((c) => `"${String(Array.isArray(r[c]) ? r[c].join(" ; ") : typeof r[c] === "object" && r[c] ? JSON.stringify(r[c]) : (r[c] ?? "")).replace(/"/g, '""')}"`).join(","))].join("\n");
