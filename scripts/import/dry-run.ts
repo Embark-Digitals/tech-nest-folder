@@ -287,10 +287,11 @@ async function run() {
           if (isFooter) {
             stats.footer_disclaimer_rows++;
             excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "footer_or_disclaimer" });
-          } else if (cellText(row.getCell(base.code)) || cellText(row.getCell(base.code + 1))) {
-            excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "incomplete_product_row" });
-          } else if (firstCell || joined) {
-            currentSection = clean(firstCell || joined).toUpperCase();
+          } else {
+            // Section heading banner: take the first non-empty cell as the heading label.
+            let label = firstCell;
+            for (let col = 1; !label && col <= 20; col++) label = cellText(row.getCell(col));
+            currentSection = clean(label || joined).toUpperCase();
             stats.section_heading_rows++;
             excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: currentSection, reason: "section_heading" });
           }
