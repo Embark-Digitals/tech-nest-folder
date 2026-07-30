@@ -30,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal supplier import artefacts (contain supplier costs) — never commit
+import-reports/
+.import-work/
