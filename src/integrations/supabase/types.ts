@@ -596,6 +596,7 @@ export type Database = {
       products: {
         Row: {
           brand_id: string | null
+          brand_review_required: boolean
           capacity: string | null
           category_id: string | null
           colour: string | null
@@ -603,7 +604,11 @@ export type Database = {
           dealer_price_ex_vat: number | null
           full_description: string | null
           id: string
+          image_required: boolean
+          import_batch_id: string | null
+          import_status: string | null
           is_clearance: boolean
+          is_discontinued: boolean
           is_featured: boolean
           is_new_arrival: boolean
           is_promotional: boolean
@@ -628,6 +633,13 @@ export type Database = {
           short_description: string | null
           sku: string
           slug: string
+          source_availability_raw: string | null
+          source_row_number: number | null
+          source_section: string | null
+          source_type: string | null
+          source_workbook: string | null
+          source_worksheet: string | null
+          specifications_text: string | null
           stock_status: Database["public"]["Enums"]["stock_status"]
           subcategory_id: string | null
           supplier_availability: Database["public"]["Enums"]["supplier_availability"]
@@ -638,6 +650,7 @@ export type Database = {
         }
         Insert: {
           brand_id?: string | null
+          brand_review_required?: boolean
           capacity?: string | null
           category_id?: string | null
           colour?: string | null
@@ -645,7 +658,11 @@ export type Database = {
           dealer_price_ex_vat?: number | null
           full_description?: string | null
           id?: string
+          image_required?: boolean
+          import_batch_id?: string | null
+          import_status?: string | null
           is_clearance?: boolean
+          is_discontinued?: boolean
           is_featured?: boolean
           is_new_arrival?: boolean
           is_promotional?: boolean
@@ -670,6 +687,13 @@ export type Database = {
           short_description?: string | null
           sku: string
           slug: string
+          source_availability_raw?: string | null
+          source_row_number?: number | null
+          source_section?: string | null
+          source_type?: string | null
+          source_workbook?: string | null
+          source_worksheet?: string | null
+          specifications_text?: string | null
           stock_status?: Database["public"]["Enums"]["stock_status"]
           subcategory_id?: string | null
           supplier_availability?: Database["public"]["Enums"]["supplier_availability"]
@@ -680,6 +704,7 @@ export type Database = {
         }
         Update: {
           brand_id?: string | null
+          brand_review_required?: boolean
           capacity?: string | null
           category_id?: string | null
           colour?: string | null
@@ -687,7 +712,11 @@ export type Database = {
           dealer_price_ex_vat?: number | null
           full_description?: string | null
           id?: string
+          image_required?: boolean
+          import_batch_id?: string | null
+          import_status?: string | null
           is_clearance?: boolean
+          is_discontinued?: boolean
           is_featured?: boolean
           is_new_arrival?: boolean
           is_promotional?: boolean
@@ -712,6 +741,13 @@ export type Database = {
           short_description?: string | null
           sku?: string
           slug?: string
+          source_availability_raw?: string | null
+          source_row_number?: number | null
+          source_section?: string | null
+          source_type?: string | null
+          source_workbook?: string | null
+          source_worksheet?: string | null
+          specifications_text?: string | null
           stock_status?: Database["public"]["Enums"]["stock_status"]
           subcategory_id?: string | null
           supplier_availability?: Database["public"]["Enums"]["supplier_availability"]
@@ -733,6 +769,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_imports"
             referencedColumns: ["id"]
           },
           {
