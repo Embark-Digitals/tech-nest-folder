@@ -179,20 +179,75 @@ function OrdersPanel() {
   );
 }
 
+type CatalogueFilter =
+  | "all"
+  | "published"
+  | "draft"
+  | "missing_price"
+  | "review"
+  | "override"
+  | "missing_image";
+
+const CATALOGUE_FILTERS: { value: CatalogueFilter; label: string }[] = [
+  { value: "all", label: "All products" },
+  { value: "published", label: "Published" },
+  { value: "draft", label: "Drafts" },
+  { value: "missing_price", label: "Missing price" },
+  { value: "review", label: "Pricing review required" },
+  { value: "override", label: "Manual override" },
+  { value: "missing_image", label: "Image required" },
+];
+
 function CataloguePanel() {
   const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<CatalogueFilter>("all");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-products"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, sku, name, stock_status, promotional_price_ex_vat, selling_price_incl_vat, is_published, pricing_review_required")
+        .select(
+          "id, sku, name, stock_status, promotional_price_ex_vat, selling_price_incl_vat, manual_price_override, is_published, pricing_review_required, product_images(id)",
+        )
         .order("name")
-        .limit(300);
+        .limit(500);
       if (error) throw error;
       return data;
     },
   });
+
+  const products = (data ?? []).filter((p) => {
+    const q = search.trim().toLowerCase();
+    if (q && !`${p.sku} ${p.name}`.toLowerCase().includes(q)) return false;
+    switch (filter) {
+      case "published":
+        return p.is_published;
+      case "draft":
+        return !p.is_published;
+      case "missing_price":
+        return !p.promotional_price_ex_vat || !p.selling_price_incl_vat;
+      case "review":
+        return p.pricing_review_required;
+      case "override":
+        return p.manual_price_override !== null;
+      case "missing_image":
+        return (p.product_images ?? []).length === 0;
+      default:
+        return true;
+    }
+  });
+
+  const allSelected = products.length > 0 && products.every((p) => selected.includes(p.id));
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const toggleSelectAll = () =>
+    setSelected(allSelected ? [] : products.map((p) => p.id));
 
   const togglePublish = async (id: string, next: boolean) => {
     const { error } = await supabase.from("products").update({ is_published: next }).eq("id", id);
@@ -200,46 +255,133 @@ function CataloguePanel() {
     qc.invalidateQueries({ queryKey: ["admin-products"] });
   };
 
+  const bulkPublish = async (next: boolean) => {
+    if (!selected.length) return;
+    setBusy(true);
+    const { error } = await supabase.from("products").update({ is_published: next }).in("id", selected);
+    setBusy(false);
+    if (error) return toast.error("Bulk update failed");
+    toast.success(`${selected.length} product(s) ${next ? "published" : "unpublished"}`);
+    setSelected([]);
+    qc.invalidateQueries({ queryKey: ["admin-products"] });
+  };
+
   if (isLoading) return <Skeleton className="h-64 w-full" />;
 
   return (
-    <Card className="p-0">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>SKU</TableHead>
-            <TableHead>Product</TableHead>
-            <TableHead>Cost excl. VAT</TableHead>
-            <TableHead>Selling incl. VAT</TableHead>
-            <TableHead>Stock</TableHead>
-            <TableHead>Published</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(data ?? []).map((p) => (
-            <TableRow key={p.id}>
-              <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-              <TableCell>
-                {p.name}
-                {p.pricing_review_required && (
-                  <Badge className="ml-2 border-0 bg-warning text-warning-foreground">Review pricing</Badge>
-                )}
-              </TableCell>
-              <TableCell>{formatZAR(Number(p.promotional_price_ex_vat ?? 0))}</TableCell>
-              <TableCell className="font-medium">{formatZAR(p.selling_price_incl_vat)}</TableCell>
-              <TableCell>{STOCK_LABELS[p.stock_status] ?? p.stock_status}</TableCell>
-              <TableCell>
-                <Button size="sm" variant={p.is_published ? "secondary" : "outline"} onClick={() => togglePublish(p.id, !p.is_published)}>
-                  {p.is_published ? "Published" : "Draft"}
-                </Button>
-              </TableCell>
+    <div className="space-y-4">
+      <Card className="flex flex-wrap items-end gap-3 p-4">
+        <div className="min-w-56 flex-1">
+          <Label htmlFor="cat-search">Search SKU or name</Label>
+          <Input
+            id="cat-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="e.g. MacBook or SKU123"
+            className="mt-1"
+          />
+        </div>
+        <div className="w-60">
+          <Label htmlFor="cat-filter">Filter</Label>
+          <Select value={filter} onValueChange={(v) => setFilter(v as CatalogueFilter)}>
+            <SelectTrigger id="cat-filter" className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATALOGUE_FILTERS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" disabled={!selected.length || busy} onClick={() => bulkPublish(true)}>
+            Publish selected
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!selected.length || busy}
+            onClick={() => bulkPublish(false)}
+          >
+            Unpublish selected
+          </Button>
+        </div>
+        <p className="w-full text-xs text-muted-foreground">
+          {products.length} shown · {selected.length} selected
+        </p>
+      </Card>
+
+      <Card className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
+                <input
+                  type="checkbox"
+                  aria-label="Select all products"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </TableHead>
+              <TableHead>SKU</TableHead>
+              <TableHead>Product</TableHead>
+              <TableHead>Cost excl. VAT</TableHead>
+              <TableHead>Selling incl. VAT</TableHead>
+              <TableHead>Stock</TableHead>
+              <TableHead>Published</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {products.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${p.sku}`}
+                    checked={selected.includes(p.id)}
+                    onChange={() => toggleSelect(p.id)}
+                  />
+                </TableCell>
+                <TableCell className="font-mono text-xs">{p.sku}</TableCell>
+                <TableCell>
+                  {p.name}
+                  {p.pricing_review_required && (
+                    <Badge className="ml-2 border-0 bg-warning text-warning-foreground">Review pricing</Badge>
+                  )}
+                  {(p.product_images ?? []).length === 0 && (
+                    <Badge variant="outline" className="ml-2">Image required</Badge>
+                  )}
+                  {p.manual_price_override !== null && (
+                    <Badge variant="secondary" className="ml-2">Override</Badge>
+                  )}
+                </TableCell>
+                <TableCell>{formatZAR(Number(p.promotional_price_ex_vat ?? 0))}</TableCell>
+                <TableCell className="font-medium">{formatZAR(p.selling_price_incl_vat)}</TableCell>
+                <TableCell>{STOCK_LABELS[p.stock_status] ?? p.stock_status}</TableCell>
+                <TableCell>
+                  <Button size="sm" variant={p.is_published ? "secondary" : "outline"} onClick={() => togglePublish(p.id, !p.is_published)}>
+                    {p.is_published ? "Published" : "Draft"}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {products.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                  No products match this filter.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
+
 
 function ImportPanel({ userId }: { userId: string }) {
   const qc = useQueryClient();
