@@ -100,26 +100,66 @@ function parseSpecs(raw: string) {
   return { text, structured, unstructured };
 }
 
-function detectBrand(sku: string, desc: string, specs: string, section: string) {
-  const hay = `${sku} ${desc} ${specs} ${section}`.toLowerCase();
-  for (const b of KNOWN_BRANDS) {
-    const re = new RegExp(`(^|[^a-z])${b.toLowerCase()}([^a-z]|$)`);
-    if (re.test(hay)) return { brand: b, status: "confirmed" as const };
+// Approved brand rules (no inference from uncertain code prefixes).
+const BRAND_PREFIXES = ["Hisense", "Toshiba", "Mora", "Kelon"];
+const BRAND_REVIEW_SKUS = new Set(["PARTY THUNDER", "AP-12HW4RNXS00"]);
+
+function detectBrand(sku: string, desc: string, specs: string, section: string, workbookLabel: string) {
+  const normalised = sku.trim().toUpperCase();
+  if (BRAND_REVIEW_SKUS.has(normalised)) return { brand: null, status: "manual_review" as const };
+  if (normalised === "GP.OTH11.08V" || /\bacer\b/i.test(`${sku} ${desc}`)) return { brand: "Acer", status: "confirmed" as const };
+  for (const b of BRAND_PREFIXES) {
+    if (normalised.startsWith(b.toUpperCase())) return { brand: b, status: "confirmed" as const };
   }
+  const hay = `${desc} ${specs}`.toLowerCase();
+  for (const b of [...BRAND_PREFIXES, "Samsung", "LG", "Sony", "Defy"]) {
+    if (new RegExp(`(^|[^a-z])${b.toLowerCase()}([^a-z]|$)`).test(hay)) return { brand: b, status: "confirmed" as const };
+  }
+  // Approved rule: the Home Appliances catalogue is primarily Hisense model codes.
+  if (workbookLabel === "B" && /^[A-Z]{1,4}[0-9]/.test(normalised)) return { brand: "Hisense", status: "confirmed_by_catalogue_rule" as const };
   return { brand: null, status: "manual_review" as const };
 }
 
-function mapCategory(section: string) {
-  const s = section.toLowerCase();
-  const rule = (name: string, confidence: "high" | "medium") => ({ category: name, confidence, status: "mapped" as const });
-  if (/(soundbar|sound bar|speaker|audio|party|hi-?fi|headphone|earbud|bluetooth)/.test(s)) return rule("Audio", "high");
-  if (/(gaming)/.test(s)) return rule("Gaming", "medium");
-  if (/(monitor)/.test(s)) return rule("Monitors", "high");
-  if (/(laptop|notebook)/.test(s)) return rule("Laptops", "high");
-  if (/(phone|smartphone)/.test(s)) return rule("Smartphones", "high");
-  if (/(bracket|remote|cable|accessor|media box|dongle)/.test(s)) return rule("Accessories", "medium");
-  return { category: null, confidence: "none" as const, status: "manual_review" as const };
+// Approved category structure (proposed only — no categories are created in the dry run).
+const SECTION_CATEGORY_MAP: Record<string, [string, string]> = {
+  "LED SMART": ["Televisions", "LED Smart TVs"],
+  "4K UHD SMART TV": ["Televisions", "4K UHD Smart TVs"],
+  "QLED SMART TV": ["Televisions", "QLED Smart TVs"],
+  "4K UHD ULED SMART TV": ["Televisions", "ULED Smart TVs"],
+  "4K MINI LED ULED SMART TV": ["Televisions", "Mini-LED ULED Smart TVs"],
+  "LASER TV": ["Televisions", "Laser TVs"],
+  "TOSHIBA TV": ["Televisions", "Toshiba TVs"],
+  "SOUND BAR": ["Audio", "Soundbars"],
+  "DIGITAL MEDIA BOX": ["Streaming Devices", "Digital Media Boxes"],
+  "MULTI DOOR REFRIGERATOR": ["Refrigeration", "Multi-Door Refrigerators"],
+  "COMBI REFRIGERATOR": ["Refrigeration", "Combi Refrigerators"],
+  "BAR FRIDGE": ["Refrigeration", "Bar Fridges"],
+  "CHEST FREEZER": ["Refrigeration", "Chest Freezers"],
+  MICROWAVE: ["Cooking Appliances", "Microwaves"],
+  "BUILT IN OVEN": ["Cooking Appliances", "Built-In Ovens"],
+  HOBS: ["Cooking Appliances", "Hobs"],
+  EXTRACTOR: ["Cooking Appliances", "Extractors"],
+  "FREE STANDING COOKER / STOVE": ["Cooking Appliances", "Freestanding Cookers and Stoves"],
+  "AIR FRYER": ["Small Appliances", "Air Fryers"],
+  DISHWASHER: ["Dishwashing", "Dishwashers"],
+  "FRONT LOADER WASHING MACHINE": ["Laundry Appliances", "Front-Loader Washing Machines"],
+  "TOP LOADER WASHING MACHINE": ["Laundry Appliances", "Top-Loader Washing Machines"],
+  "TWIN TUB WASHING MACHINE": ["Laundry Appliances", "Twin-Tub Washing Machines"],
+  "TUMBLE DRYER": ["Laundry Appliances", "Tumble Dryers"],
+  "AIR CONDITIONER": ["Climate Control", "Split Air Conditioners"],
+};
+
+function mapCategory(section: string, sku: string, name: string) {
+  const key = clean(section).toUpperCase();
+  const n = `${sku} ${name}`.toLowerCase();
+  if (/party thunder|party speaker/.test(n)) return { parent: "Audio", category: "Party Speakers", confidence: "high" as const, status: "mapped" as const };
+  if (key === "AIR CONDITIONER" && /portable/.test(n))
+    return { parent: "Climate Control", category: "Portable Air Conditioners", confidence: "high" as const, status: "mapped" as const };
+  const hit = SECTION_CATEGORY_MAP[key];
+  if (hit) return { parent: hit[0], category: hit[1], confidence: "high" as const, status: "mapped" as const };
+  return { parent: null, category: null, confidence: "none" as const, status: "manual_review" as const };
 }
+
 
 function mapAvailability(raw: string) {
   const s = clean(raw).toLowerCase();
