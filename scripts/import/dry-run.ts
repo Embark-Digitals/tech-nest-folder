@@ -363,18 +363,20 @@ async function run() {
         stats.valid_products++;
         promo.value ? stats.with_promo_price++ : stats.missing_promo_price++;
         anchors.length ? stats.with_images++ : stats.without_images++;
-        brand.status === "confirmed" ? stats.brands_confirmed++ : stats.brands_review++;
+        brand.status === "manual_review" ? stats.brands_review++ : stats.brands_confirmed++;
         cat.status === "mapped" ? stats.categories_mapped++ : stats.categories_review++;
 
-        const key = `${wbDef.file}::${currentSection}`;
+        const key = `${wbDef.file}::${currentSection}::${cat.category}`;
         const entry = sectionMap.get(key) ?? {
           section: currentSection ?? "(none)",
           workbook: wbDef.file,
+          parent: cat.parent,
           category: cat.category,
           confidence: cat.confidence,
           status: cat.status,
           count: 0,
         };
+
         entry.count++;
         sectionMap.set(key, entry);
       });
