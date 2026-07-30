@@ -16,10 +16,10 @@ export const Route = createFileRoute("/")({
         content:
           "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery.",
       },
-      { property: "og:title", content: "TechNest | Tech Store South Africa" },
+      { property: "og:title", content: "TechNest | Buy Laptops, Phones & Gaming Gear in South Africa" },
       {
         property: "og:description",
-        content: "Laptops, smartphones, audio and gaming gear in ZAR incl. VAT with nationwide delivery.",
+        content: "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

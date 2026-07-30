@@ -81,20 +81,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TechNest | Tech Store South Africa" },
+      { title: "TechNest | Buy Laptops, Phones & Gaming Gear in South Africa" },
       {
         name: "description",
         content:
-          "TechNest is a South African online tech store. Laptops, smartphones, audio and gaming gear in ZAR incl. VAT with nationwide delivery.",
+          "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery.",
       },
       { name: "author", content: "TechNest" },
-      { property: "og:title", content: "TechNest | Tech Store South Africa" },
+      { property: "og:title", content: "TechNest | Buy Laptops, Phones & Gaming Gear in South Africa" },
       {
         property: "og:description",
-        content: "Laptops, smartphones, audio and gaming gear in ZAR incl. VAT with nationwide delivery.",
+        content: "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "TechNest | Buy Laptops, Phones & Gaming Gear in South Africa" },
+      { name: "twitter:description", content: "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e078bed1-b7db-4cce-9def-daffb17bbbb8/id-preview-75486d0d--9d450225-90b1-406d-b64c-889cba8155e1.lovable.app-1785436212857.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e078bed1-b7db-4cce-9def-daffb17bbbb8/id-preview-75486d0d--9d450225-90b1-406d-b64c-889cba8155e1.lovable.app-1785436212857.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
