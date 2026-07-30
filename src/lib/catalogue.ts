@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const PRODUCT_FIELDS =
-  "id, sku, name, slug, short_description, full_description, stock_status, supplier_availability, quantity, selling_price_incl_vat, previous_price_incl_vat, is_featured, is_promotional, is_clearance, is_new_arrival, screen_size, capacity, colour, seo_title, seo_description, category_id, brand_id, brands(name, slug), categories(name, slug), product_images(url, alt_text, is_primary, sort_order)";
+  "id, sku, name, slug, short_description, full_description, stock_status, supplier_availability, quantity, selling_price_incl_vat, previous_price_incl_vat, is_featured, is_promotional, is_clearance, is_new_arrival, screen_size, capacity, colour, seo_title, seo_description, category_id, brand_id, brands(name, slug), categories!products_category_id_fkey(name, slug), product_images(url, alt_text, is_primary, sort_order)";
 
 export type ProductRow = {
   id: string;
