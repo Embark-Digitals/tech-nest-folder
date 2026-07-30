@@ -45,6 +45,14 @@ const WORKBOOKS: Workbook[] = [
 // Existing TechNest categories (read-only reference; no categories are created).
 const TECHNEST_CATEGORIES = ["Laptops", "Smartphones", "Audio", "Gaming", "Monitors", "Accessories"];
 
+// Read-only snapshot of the 18 existing catalogue SKUs (used for upsert reconciliation only).
+const EXISTING_SKUS = [
+  "TN-ACC-001","TN-ACC-002","TN-AUD-001","TN-AUD-002","TN-AUD-003","TN-GAM-001","TN-GAM-002","TN-GAM-003",
+  "TN-LAP-001","TN-LAP-002","TN-LAP-003","TN-LAP-004","TN-MON-001","TN-MON-002","TN-PHN-001","TN-PHN-002",
+  "TN-PHN-003","TN-PHN-004",
+];
+
+
 // Brands with clear evidence in the workbook content.
 const KNOWN_BRANDS = ["Hisense", "Toshiba", "Acer", "Mora", "Samsung", "LG", "Sony", "Defy", "Bosch", "Whirlpool"];
 
