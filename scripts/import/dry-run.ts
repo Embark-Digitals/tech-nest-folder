@@ -93,7 +93,7 @@ function parseSpecs(raw: string) {
   const structured: Record<string, string> = {};
   const unstructured: string[] = [];
   for (const p of parts) {
-    const m = p.match(/^([A-Za-z][A-Za-z0-9 ()/%.'"-]{1,40}?)\s*[:\-–]\s*(.+)$/);
+    const m = p.match(/^([A-Za-z][A-Za-z0-9 ()/%.'"-]{1,40}?)\s*:\s*(.+)$/);
     if (m && m[2].trim()) structured[m[1].trim()] = m[2].trim();
     else unstructured.push(p);
   }
@@ -112,7 +112,7 @@ function detectBrand(sku: string, desc: string, specs: string, section: string) 
 function mapCategory(section: string) {
   const s = section.toLowerCase();
   const rule = (name: string, confidence: "high" | "medium") => ({ category: name, confidence, status: "mapped" as const });
-  if (/(soundbar|speaker|audio|party|hi-?fi|headphone|earbud|bluetooth)/.test(s)) return rule("Audio", "high");
+  if (/(soundbar|sound bar|speaker|audio|party|hi-?fi|headphone|earbud|bluetooth)/.test(s)) return rule("Audio", "high");
   if (/(gaming)/.test(s)) return rule("Gaming", "medium");
   if (/(monitor)/.test(s)) return rule("Monitors", "high");
   if (/(laptop|notebook)/.test(s)) return rule("Laptops", "high");
