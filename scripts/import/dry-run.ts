@@ -468,7 +468,7 @@ async function run() {
       "source_workbook","source_worksheet","source_row_number","source_section","sku","normalised_sku","name","short_description","specifications_text","proposed_brand","brand_mapping_status","proposed_category","category_mapping_status","promotional_price_ex_vat","dealer_price_ex_vat","expected_selling_price_incl_vat","supplier_availability","proposed_stock_status","is_new_arrival","is_clearance","is_discontinued","has_anchored_image","image_anchor_row","proposed_image_filename","proposed_publish_status","validation_status","validation_warnings",
     ]),
   );
-  w("technest-category-mapping.csv", csv([...sectionMap.values()].map((s) => ({ ...s, manual_approval_required: s.status !== "mapped" || s.confidence !== "high" })), ["workbook","section","category","confidence","status","count","manual_approval_required"]));
+  w("technest-category-mapping.csv", csv([...sectionMap.values()].map((s) => ({ ...s, manual_approval_required: s.status !== "mapped" || s.confidence !== "high" })), ["workbook","section","parent","category","confidence","status","count","manual_approval_required"]));
   w("technest-brand-review.csv", csv(all.filter((r) => r.brand_mapping_status === "manual_review"), ["source_workbook","source_row_number","sku","name","source_section","specifications_text","proposed_brand","brand_mapping_status"]));
   w("technest-price-review.csv", csv(all.filter((r) => !r.promotional_price_ex_vat), ["source_workbook","source_row_number","sku","name","supplier_availability","promotional_price_ex_vat","dealer_price_ex_vat","expected_selling_price_incl_vat","validation_status","validation_warnings"]));
   w("technest-image-review.csv", csv([...all.filter((r) => !r.has_anchored_image || r.image_count > 1).map((r) => ({ ...r, note: r.has_anchored_image ? "multiple images anchored" : "no anchored image" })), ...imageNotes], ["source_workbook","source_row_number","sku","name","has_anchored_image","image_count","image_anchor_row","image_type","proposed_image_filename","note","workbook","worksheet","anchor_row","count"]));
@@ -486,7 +486,7 @@ async function run() {
     "## Proposed category mapping",
     "| Workbook | Supplier section | Proposed TechNest category | Confidence | Products | Manual approval |",
     "|---|---|---|---|---|---|",
-    ...[...sectionMap.values()].map((s) => `| ${s.workbook} | ${s.section} | ${s.category ?? "—"} | ${s.confidence} | ${s.count} | ${s.status !== "mapped" || s.confidence !== "high" ? "yes" : "no"} |`),
+    ...[...sectionMap.values()].map((s) => `| ${s.workbook} | ${s.section} | ${s.parent ?? "—"} / ${s.category ?? "—"} | ${s.confidence} | ${s.count} | ${s.status !== "mapped" || s.confidence !== "high" ? "yes" : "no"} |`),
     "",
     `Existing TechNest categories (unchanged): ${TECHNEST_CATEGORIES.join(", ")}`,
   ].join("\n");
