@@ -213,8 +213,12 @@ async function run() {
           excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 120), reason: "blank_or_decorative" });
           return;
         }
+        // Merged banner rows (section headings / footers) span the CODE column.
+        const codeCell: any = row.getCell(c.code);
+        const isBanner = !!codeCell?.isMerged && codeCell?.master?.address !== codeCell?.address;
         // Section heading: only column 1 (or nothing in code/desc columns) has content
-        if (!code && !desc) {
+        if (isBanner || (!code && !desc)) {
+
           const isFooter = /(e&oe|terms|conditions|valid|subject to|prices|disclaimer|errors|excl|vat|contact|tel:|email)/i.test(joined) && joined.length > 25;
           if (isFooter) {
             stats.footer_disclaimer_rows++;
