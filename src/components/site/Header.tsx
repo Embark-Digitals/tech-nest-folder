@@ -27,7 +27,11 @@ export function Header() {
 
   const nav = (
     <>
-      <Link to="/shop" className="text-sm font-medium hover:text-cyan" onClick={() => setOpen(false)}>
+      <Link
+        to="/shop"
+        className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/80 transition-colors hover:text-primary"
+        onClick={() => setOpen(false)}
+      >
         Shop all
       </Link>
       {(categories ?? []).slice(0, 6).map((c) => (
@@ -35,7 +39,7 @@ export function Header() {
           key={c.id}
           to="/category/$slug"
           params={{ slug: c.slug }}
-          className="text-sm font-medium hover:text-cyan"
+          className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground/80 transition-colors hover:text-primary"
           onClick={() => setOpen(false)}
         >
           {c.name}
@@ -45,14 +49,14 @@ export function Header() {
   );
 
   return (
-    <header className="sticky top-0 z-50 bg-navy text-navy-foreground">
-      <div className="border-b border-sidebar-border/40 bg-navy/60 px-4 py-1.5 text-center text-xs text-navy-foreground">
-Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
+    <header className="sticky top-0 z-50 bg-background">
+      <div className="border-b border-border bg-muted px-4 py-2 text-center text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
       </div>
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild className="lg:hidden">
-            <Button variant="ghost" size="icon" className="text-navy-foreground hover:bg-sidebar-accent">
+            <Button variant="ghost" size="icon">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -62,11 +66,9 @@ Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
           </SheetContent>
         </Sheet>
 
-        <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan font-display text-sm font-bold text-cyan-foreground">
-            TN
-          </span>
-          <span className="font-display text-xl font-bold tracking-tight">TechNest</span>
+        <Link to="/" className="flex items-baseline gap-0.5">
+          <span className="font-display text-2xl font-bold tracking-tight text-primary">T</span>
+          <span className="font-display text-2xl font-bold tracking-tight">echNest</span>
         </Link>
 
         <form onSubmit={submit} className="relative ml-auto hidden max-w-md flex-1 md:block">
@@ -75,27 +77,27 @@ Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Search laptops, phones, audio…"
-            className="border-0 bg-background pl-9 text-foreground"
+            className="border-border bg-muted pl-9"
             aria-label="Search products"
           />
         </form>
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           {isStaff && (
-            <Button asChild variant="ghost" className="hidden text-navy-foreground hover:bg-sidebar-accent sm:inline-flex">
+            <Button asChild variant="ghost" className="hidden sm:inline-flex">
               <Link to="/admin">Admin</Link>
             </Button>
           )}
-          <Button asChild variant="ghost" size="icon" className="text-navy-foreground hover:bg-sidebar-accent">
+          <Button asChild variant="ghost" size="icon">
             <Link to={user ? "/account" : "/auth"} aria-label="Account">
               <User2 className="h-5 w-5" />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" className="relative text-navy-foreground hover:bg-sidebar-accent">
+          <Button asChild variant="ghost" size="icon" className="relative">
             <Link to="/cart" aria-label="Cart">
               <ShoppingCart className="h-5 w-5" />
               {cart.count > 0 && (
-                <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center border-0 bg-cyan px-1 text-cyan-foreground">
+                <Badge className="absolute -right-1 -top-1 h-5 min-w-5 justify-center border-0 bg-primary px-1 text-primary-foreground">
                   {cart.count}
                 </Badge>
               )}
@@ -103,8 +105,8 @@ Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
           </Button>
         </div>
       </div>
-      <nav className="hidden border-t border-sidebar-border/40 lg:block">
-        <div className="mx-auto flex max-w-7xl gap-6 px-4 py-2.5">{nav}</div>
+      <nav className="hidden border-y border-border lg:block">
+        <div className="mx-auto flex max-w-7xl justify-center gap-8 px-4 py-3">{nav}</div>
       </nav>
     </header>
   );
