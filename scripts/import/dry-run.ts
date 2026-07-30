@@ -45,6 +45,14 @@ const WORKBOOKS: Workbook[] = [
 // Existing TechNest categories (read-only reference; no categories are created).
 const TECHNEST_CATEGORIES = ["Laptops", "Smartphones", "Audio", "Gaming", "Monitors", "Accessories"];
 
+// Read-only snapshot of the 18 existing catalogue SKUs (used for upsert reconciliation only).
+const EXISTING_SKUS = [
+  "TN-ACC-001","TN-ACC-002","TN-AUD-001","TN-AUD-002","TN-AUD-003","TN-GAM-001","TN-GAM-002","TN-GAM-003",
+  "TN-LAP-001","TN-LAP-002","TN-LAP-003","TN-LAP-004","TN-MON-001","TN-MON-002","TN-PHN-001","TN-PHN-002",
+  "TN-PHN-003","TN-PHN-004",
+];
+
+
 // Brands with clear evidence in the workbook content.
 const KNOWN_BRANDS = ["Hisense", "Toshiba", "Acer", "Mora", "Samsung", "LG", "Sony", "Defy", "Bosch", "Whirlpool"];
 
@@ -100,26 +108,66 @@ function parseSpecs(raw: string) {
   return { text, structured, unstructured };
 }
 
-function detectBrand(sku: string, desc: string, specs: string, section: string) {
-  const hay = `${sku} ${desc} ${specs} ${section}`.toLowerCase();
-  for (const b of KNOWN_BRANDS) {
-    const re = new RegExp(`(^|[^a-z])${b.toLowerCase()}([^a-z]|$)`);
-    if (re.test(hay)) return { brand: b, status: "confirmed" as const };
+// Approved brand rules (no inference from uncertain code prefixes).
+const BRAND_PREFIXES = ["Hisense", "Toshiba", "Mora", "Kelon"];
+const BRAND_REVIEW_SKUS = new Set(["PARTY THUNDER", "AP-12HW4RNXS00"]);
+
+function detectBrand(sku: string, desc: string, specs: string, section: string, workbookLabel: string) {
+  const normalised = sku.trim().toUpperCase();
+  if (BRAND_REVIEW_SKUS.has(normalised)) return { brand: null, status: "manual_review" as const };
+  if (normalised === "GP.OTH11.08V" || /\bacer\b/i.test(`${sku} ${desc}`)) return { brand: "Acer", status: "confirmed" as const };
+  for (const b of BRAND_PREFIXES) {
+    if (normalised.startsWith(b.toUpperCase())) return { brand: b, status: "confirmed" as const };
   }
+  const hay = `${desc} ${specs}`.toLowerCase();
+  for (const b of [...BRAND_PREFIXES, "Samsung", "LG", "Sony", "Defy"]) {
+    if (new RegExp(`(^|[^a-z])${b.toLowerCase()}([^a-z]|$)`).test(hay)) return { brand: b, status: "confirmed" as const };
+  }
+  // Approved rule: the Home Appliances catalogue is primarily Hisense model codes.
+  if (workbookLabel === "B" && /^[A-Z]{1,4}[0-9]/.test(normalised)) return { brand: "Hisense", status: "confirmed_by_catalogue_rule" as const };
   return { brand: null, status: "manual_review" as const };
 }
 
-function mapCategory(section: string) {
-  const s = section.toLowerCase();
-  const rule = (name: string, confidence: "high" | "medium") => ({ category: name, confidence, status: "mapped" as const });
-  if (/(soundbar|sound bar|speaker|audio|party|hi-?fi|headphone|earbud|bluetooth)/.test(s)) return rule("Audio", "high");
-  if (/(gaming)/.test(s)) return rule("Gaming", "medium");
-  if (/(monitor)/.test(s)) return rule("Monitors", "high");
-  if (/(laptop|notebook)/.test(s)) return rule("Laptops", "high");
-  if (/(phone|smartphone)/.test(s)) return rule("Smartphones", "high");
-  if (/(bracket|remote|cable|accessor|media box|dongle)/.test(s)) return rule("Accessories", "medium");
-  return { category: null, confidence: "none" as const, status: "manual_review" as const };
+// Approved category structure (proposed only — no categories are created in the dry run).
+const SECTION_CATEGORY_MAP: Record<string, [string, string]> = {
+  "LED SMART": ["Televisions", "LED Smart TVs"],
+  "4K UHD SMART TV": ["Televisions", "4K UHD Smart TVs"],
+  "QLED SMART TV": ["Televisions", "QLED Smart TVs"],
+  "4K UHD ULED SMART TV": ["Televisions", "ULED Smart TVs"],
+  "4K MINI LED ULED SMART TV": ["Televisions", "Mini-LED ULED Smart TVs"],
+  "LASER TV": ["Televisions", "Laser TVs"],
+  "TOSHIBA TV": ["Televisions", "Toshiba TVs"],
+  "SOUND BAR": ["Audio", "Soundbars"],
+  "DIGITAL MEDIA BOX": ["Streaming Devices", "Digital Media Boxes"],
+  "MULTI DOOR REFRIGERATOR": ["Refrigeration", "Multi-Door Refrigerators"],
+  "COMBI REFRIGERATOR": ["Refrigeration", "Combi Refrigerators"],
+  "BAR FRIDGE": ["Refrigeration", "Bar Fridges"],
+  "CHEST FREEZER": ["Refrigeration", "Chest Freezers"],
+  MICROWAVE: ["Cooking Appliances", "Microwaves"],
+  "BUILT IN OVEN": ["Cooking Appliances", "Built-In Ovens"],
+  HOBS: ["Cooking Appliances", "Hobs"],
+  EXTRACTOR: ["Cooking Appliances", "Extractors"],
+  "FREE STANDING COOKER / STOVE": ["Cooking Appliances", "Freestanding Cookers and Stoves"],
+  "AIR FRYER": ["Small Appliances", "Air Fryers"],
+  DISHWASHER: ["Dishwashing", "Dishwashers"],
+  "FRONT LOADER WASHING MACHINE": ["Laundry Appliances", "Front-Loader Washing Machines"],
+  "TOP LOADER WASHING MACHINE": ["Laundry Appliances", "Top-Loader Washing Machines"],
+  "TWIN TUB WASHING MACHINE": ["Laundry Appliances", "Twin-Tub Washing Machines"],
+  "TUMBLE DRYER": ["Laundry Appliances", "Tumble Dryers"],
+  "AIR CONDITIONER": ["Climate Control", "Split Air Conditioners"],
+};
+
+function mapCategory(section: string, sku: string, name: string) {
+  const key = clean(section).toUpperCase();
+  const n = `${sku} ${name}`.toLowerCase();
+  if (/party thunder|party speaker/.test(n)) return { parent: "Audio", category: "Party Speakers", confidence: "high" as const, status: "mapped" as const };
+  if (key === "AIR CONDITIONER" && /portable/.test(n))
+    return { parent: "Climate Control", category: "Portable Air Conditioners", confidence: "high" as const, status: "mapped" as const };
+  const hit = SECTION_CATEGORY_MAP[key];
+  if (hit) return { parent: hit[0], category: hit[1], confidence: "high" as const, status: "mapped" as const };
+  return { parent: null, category: null, confidence: "none" as const, status: "manual_review" as const };
 }
+
 
 function mapAvailability(raw: string) {
   const s = clean(raw).toLowerCase();
@@ -195,9 +243,7 @@ async function run() {
 
       ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         stats.rows_examined++;
-        const c = wbDef.cols;
-        const code = cellText(row.getCell(c.code));
-        const desc = cellText(row.getCell(c.description));
+        const base = wbDef.cols;
         const firstCell = cellText(row.getCell(1));
         const joined = row.values ? clean(Object.values(row.values as any).map((v: any) => (typeof v === "object" ? cellText({ value: v } as any) : v)).join(" ")) : "";
 
@@ -213,25 +259,42 @@ async function run() {
           excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 120), reason: "blank_or_decorative" });
           return;
         }
-        // Merged banner rows (section headings / footers) span the CODE column.
-        const codeCell: any = row.getCell(c.code);
-        const isBanner = !!codeCell?.isMerged && codeCell?.master?.address !== codeCell?.address;
-        // Section heading: only column 1 (or nothing in code/desc columns) has content
-        if (isBanner || (!code && !desc)) {
 
-          const isFooter = /(e&oe|terms|conditions|valid|subject to|prices|disclaimer|errors|excl|vat|contact|tel:|email)/i.test(joined) && joined.length > 25;
+        // A product row must carry code + description + specifications + availability.
+        // Some rows are shifted one column right (spacer-column layout change), so probe
+        // the expected columns and a one-column-right shift before rejecting the row.
+        const shifted = (off: number) => ({ image: base.image, code: base.code + off, description: base.description + off, specifications: base.specifications + off, availability: base.availability + off, dealer: base.dealer + off, promo: base.promo + off });
+        let c: ReturnType<typeof shifted> | null = null;
+        let columnOffset = 0;
+        for (const off of [0, 1]) {
+          const t = shifted(off);
+          const codeT = cellText(row.getCell(t.code));
+          const descT = cellText(row.getCell(t.description));
+          const specT = cellText(row.getCell(t.specifications));
+          const availT = cellText(row.getCell(t.availability));
+          // A banner/heading row is merged across the whole row, so every probed cell
+          // returns the same text — that is not a product row.
+          const isBanner = codeT === descT || descT === specT || specT === availT;
+          if (codeT && descT && specT && availT && !isBanner) {
+            c = t;
+            columnOffset = off;
+            break;
+          }
+        }
+
+        if (!c) {
+          const isFooter = /(e&oe|terms|conditions|subject to|disclaimer|errors|reserve the right|excl|contact|tel:|email)/i.test(joined) && joined.length > 25;
           if (isFooter) {
             stats.footer_disclaimer_rows++;
             excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "footer_or_disclaimer" });
-          } else if (firstCell || joined) {
-            currentSection = clean(firstCell || joined).toUpperCase();
+          } else {
+            // Section heading banner: take the first non-empty cell as the heading label.
+            let label = firstCell;
+            for (let col = 1; !label && col <= 20; col++) label = cellText(row.getCell(col));
+            currentSection = clean(label || joined).toUpperCase();
             stats.section_heading_rows++;
             excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: currentSection, reason: "section_heading" });
           }
-          return;
-        }
-        if (!code) {
-          excluded.push({ workbook: wbDef.file, worksheet: ws.name, row: rowNumber, text: joined.slice(0, 160), reason: "missing_sku" });
           return;
         }
 
@@ -246,9 +309,10 @@ async function run() {
         const avail = mapAvailability(availabilityRaw);
         const promo = parsePrice(rawText(row.getCell(c.promo)));
         const dealer = parsePrice(rawText(row.getCell(c.dealer)));
-        const brand = detectBrand(sku, name, specs.text, currentSection ?? "");
-        const cat = mapCategory(currentSection ?? "");
+        const brand = detectBrand(sku, name, specs.text, currentSection ?? "", wbDef.label);
+        const cat = mapCategory(currentSection ?? "", sku, name);
         const anchors = anchoredByRow.get(rowNumber) ?? [];
+
 
         const warnings: string[] = [];
         if (!promo.value) warnings.push(`no valid promotional price (${promo.reason}); no customer selling price can be calculated`);
@@ -282,11 +346,14 @@ async function run() {
           specifications: specs.structured,
           specifications_unstructured: specs.unstructured,
           specifications_text: specs.text,
+          column_offset: columnOffset,
           proposed_brand: brand.brand,
           brand_mapping_status: brand.status,
+          proposed_parent_category: cat.parent,
           proposed_category: cat.category,
           category_mapping_status: cat.status,
           category_confidence: cat.confidence,
+
           promotional_price_ex_vat: promo.value,
           dealer_price_ex_vat: dealer.value,
           expected_selling_price_incl_vat: expected,
@@ -312,18 +379,20 @@ async function run() {
         stats.valid_products++;
         promo.value ? stats.with_promo_price++ : stats.missing_promo_price++;
         anchors.length ? stats.with_images++ : stats.without_images++;
-        brand.status === "confirmed" ? stats.brands_confirmed++ : stats.brands_review++;
+        brand.status === "manual_review" ? stats.brands_review++ : stats.brands_confirmed++;
         cat.status === "mapped" ? stats.categories_mapped++ : stats.categories_review++;
 
-        const key = `${wbDef.file}::${currentSection}`;
+        const key = `${wbDef.file}::${currentSection}::${cat.category}`;
         const entry = sectionMap.get(key) ?? {
           section: currentSection ?? "(none)",
           workbook: wbDef.file,
+          parent: cat.parent,
           category: cat.category,
           confidence: cat.confidence,
           status: cat.status,
           count: 0,
         };
+
         entry.count++;
         sectionMap.set(key, entry);
       });
@@ -355,27 +424,45 @@ async function run() {
       if (r.validation_status === "ready") r.validation_status = "review_required";
     }
 
+  // Upsert-by-SKU reconciliation against the existing catalogue (read-only snapshot).
+  const overlapping = EXISTING_SKUS.filter((s) => bySku.has(s.toUpperCase()));
+  const existingOnly = EXISTING_SKUS.filter((s) => !bySku.has(s.toUpperCase()));
+  const newSkus = [...bySku.keys()].filter((s) => !EXISTING_SKUS.map((e) => e.toUpperCase()).includes(s));
+
   const combined = {
     total_valid_products: all.length,
     unique_skus: bySku.size,
     duplicate_skus: duplicates.length,
+    with_promotional_price: all.filter((r) => r.promotional_price_ex_vat).length,
     ready_for_staging: all.filter((r) => r.validation_status === "ready").length,
     pricing_review_required: all.filter((r) => r.validation_status === "pricing_review_required").length,
     brand_review_required: all.filter((r) => r.brand_mapping_status === "manual_review").length,
     category_review_required: all.filter((r) => r.category_mapping_status === "manual_review").length,
+    with_images: all.filter((r) => r.has_anchored_image).length,
     without_images: all.filter((r) => !r.has_anchored_image).length,
     new_arrivals: all.filter((r) => r.is_new_arrival).length,
     clearance: all.filter((r) => r.is_clearance).length,
     discontinued: all.filter((r) => r.is_discontinued).length,
     excluded_rows: excluded.length,
     exclusion_reasons: excluded.reduce((acc: Record<string, number>, e) => ((acc[e.reason] = (acc[e.reason] ?? 0) + 1), acc), {}),
-    expected_catalogue_after_import: 18 + bySku.size,
+    reconciliation: {
+      existing_products: EXISTING_SKUS.length,
+      supplier_products: bySku.size,
+      overlapping_skus: overlapping.length,
+      overlapping_sku_list: overlapping,
+      existing_skus_not_in_supplier: existingOnly.length,
+      new_supplier_skus: newSkus.length,
+      products_to_update: overlapping.length,
+      products_to_create: newSkus.length,
+      expected_final_total: EXISTING_SKUS.length + bySku.size - overlapping.length,
+    },
     database_writes: 0,
     storage_uploads: 0,
     existing_demo_products_changed: 0,
     dry_run: DRY_RUN,
     pricing_assumptions: { markup_rate: MARKUP_RATE, vat_rate: VAT_RATE, source: "dry-run assumption (settings not read from database)" },
   };
+
 
   const csv = (rows: Row[], cols: string[]) =>
     [cols.join(","), ...rows.map((r) => cols.map((c) => `"${String(Array.isArray(r[c]) ? r[c].join(" ; ") : typeof r[c] === "object" && r[c] ? JSON.stringify(r[c]) : (r[c] ?? "")).replace(/"/g, '""')}"`).join(","))].join("\n");
@@ -389,7 +476,7 @@ async function run() {
       "source_workbook","source_worksheet","source_row_number","source_section","sku","normalised_sku","name","short_description","specifications_text","proposed_brand","brand_mapping_status","proposed_category","category_mapping_status","promotional_price_ex_vat","dealer_price_ex_vat","expected_selling_price_incl_vat","supplier_availability","proposed_stock_status","is_new_arrival","is_clearance","is_discontinued","has_anchored_image","image_anchor_row","proposed_image_filename","proposed_publish_status","validation_status","validation_warnings",
     ]),
   );
-  w("technest-category-mapping.csv", csv([...sectionMap.values()].map((s) => ({ ...s, manual_approval_required: s.status !== "mapped" || s.confidence !== "high" })), ["workbook","section","category","confidence","status","count","manual_approval_required"]));
+  w("technest-category-mapping.csv", csv([...sectionMap.values()].map((s) => ({ ...s, manual_approval_required: s.status !== "mapped" || s.confidence !== "high" })), ["workbook","section","parent","category","confidence","status","count","manual_approval_required"]));
   w("technest-brand-review.csv", csv(all.filter((r) => r.brand_mapping_status === "manual_review"), ["source_workbook","source_row_number","sku","name","source_section","specifications_text","proposed_brand","brand_mapping_status"]));
   w("technest-price-review.csv", csv(all.filter((r) => !r.promotional_price_ex_vat), ["source_workbook","source_row_number","sku","name","supplier_availability","promotional_price_ex_vat","dealer_price_ex_vat","expected_selling_price_incl_vat","validation_status","validation_warnings"]));
   w("technest-image-review.csv", csv([...all.filter((r) => !r.has_anchored_image || r.image_count > 1).map((r) => ({ ...r, note: r.has_anchored_image ? "multiple images anchored" : "no anchored image" })), ...imageNotes], ["source_workbook","source_row_number","sku","name","has_anchored_image","image_count","image_anchor_row","image_type","proposed_image_filename","note","workbook","worksheet","anchor_row","count"]));
@@ -407,7 +494,7 @@ async function run() {
     "## Proposed category mapping",
     "| Workbook | Supplier section | Proposed TechNest category | Confidence | Products | Manual approval |",
     "|---|---|---|---|---|---|",
-    ...[...sectionMap.values()].map((s) => `| ${s.workbook} | ${s.section} | ${s.category ?? "—"} | ${s.confidence} | ${s.count} | ${s.status !== "mapped" || s.confidence !== "high" ? "yes" : "no"} |`),
+    ...[...sectionMap.values()].map((s) => `| ${s.workbook} | ${s.section} | ${s.parent ?? "—"} / ${s.category ?? "—"} | ${s.confidence} | ${s.count} | ${s.status !== "mapped" || s.confidence !== "high" ? "yes" : "no"} |`),
     "",
     `Existing TechNest categories (unchanged): ${TECHNEST_CATEGORIES.join(", ")}`,
   ].join("\n");
