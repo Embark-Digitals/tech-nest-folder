@@ -87,8 +87,23 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
+        <nav className="mb-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <Link to="/contact" className="hover:text-primary">
+            Contact
+          </Link>
+          <Link to="/privacy" className="hover:text-primary">
+            Privacy policy
+          </Link>
+          <Link to="/terms" className="hover:text-primary">
+            Terms &amp; conditions
+          </Link>
+          <Link to="/returns" className="hover:text-primary">
+            Returns
+          </Link>
+        </nav>
         © {new Date().getFullYear()} TechNest. All prices in South African Rand incl. 15% VAT.
       </div>
+
     </footer>
   );
 }
