@@ -514,6 +514,48 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          handled_by: string | null
+          id: string
+          message: string
+          name: string
+          order_number: string | null
+          phone: string | null
+          reason: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          handled_by?: string | null
+          id?: string
+          message: string
+          name: string
+          order_number?: string | null
+          phone?: string | null
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          handled_by?: string | null
+          id?: string
+          message?: string
+          name?: string
+          order_number?: string | null
+          phone?: string | null
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_notes: {
         Row: {
           body: string

@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { noindexMeta } from "@/lib/site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
+import { trackOnce } from "@/lib/analytics";
+import { ContactInboxPanel } from "@/components/admin/ContactInboxPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +50,7 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Staff Admin | TechNest" },
       { property: "og:description", content: "TechNest staff console." },
+      noindexMeta,
     ],
   }),
   component: AdminPage,
@@ -91,6 +95,7 @@ function AdminPage() {
           <TabsTrigger value="import">Import</TabsTrigger>
           <TabsTrigger value="shipping">Shipping</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="inbox">Inbox</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
@@ -111,6 +116,9 @@ function AdminPage() {
           <ShippingPanel isAdmin={isAdmin} />
         </TabsContent>
 
+        <TabsContent value="inbox" className="pt-6">
+          <ContactInboxPanel />
+        </TabsContent>
         <TabsContent value="emails" className="pt-6">
           <EmailLogPanel isAdmin={isAdmin} />
         </TabsContent>
@@ -175,6 +183,22 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
     if (error) return toast.error(error.message);
     toast.success("Order updated");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
+
+    // Reversal analytics use server-stored totals and are deduplicated by order
+    // id so a repeated status change cannot double-count a negative conversion.
+    const row = (data ?? []).find((o) => o.id === id);
+    const value = Number(row?.total_incl_vat ?? 0);
+    if (status === "cancelled") {
+      trackOnce("order_cancelled", id, {
+        transaction_id: row?.order_number,
+        value,
+        was_paid: row?.payment_status === "paid",
+      });
+    }
+    if (status === "refunded") {
+      trackOnce("refund", id, { transaction_id: row?.order_number, value });
+    }
+
     // Notification is best-effort — a failure is logged in the Emails tab.
     void notify({ data: { order_id: id, event: (STATUS_EMAIL[status] ?? "order_status_update") as never } });
   };
@@ -188,11 +212,24 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
     });
     if (error) return toast.error(error.message);
     toast.success("Manual EFT recorded");
+    // Payment is now authorised and settled, so this is the only point at which
+    // revenue may be reported. Value comes from the server-stored order total.
+    trackOnce("payment_confirmed", eftOrder.id, {
+      transaction_id: eftOrder.number,
+      value: eftOrder.total,
+      payment_method: "manual_eft",
+    });
+    trackOnce("purchase", eftOrder.id, {
+      transaction_id: eftOrder.number,
+      value: eftOrder.total,
+      payment_method: "manual_eft",
+    });
     void notify({ data: { order_id: eftOrder.id, event: "order_payment_received" } });
     setEftOrder(null);
     setEftRef("");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
   };
+
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
 

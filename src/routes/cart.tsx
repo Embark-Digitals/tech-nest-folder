@@ -1,4 +1,7 @@
+import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { track, itemPayload } from "@/lib/analytics";
+import { canonicalHead, noindexMeta } from "@/lib/site";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +16,9 @@ export const Route = createFileRoute("/cart")({
       { name: "description", content: "Review the tech in your TechNest cart before checkout. Prices in ZAR incl. VAT." },
       { property: "og:title", content: "Your Cart | TechNest" },
       { property: "og:description", content: "Review your TechNest cart before checkout." },
+      // Private, per-visitor page: excluded from the sitemap and from indexing.
+      noindexMeta,
+      canonicalHead("/cart").meta,
     ],
   }),
   component: CartPage,
@@ -21,6 +27,15 @@ export const Route = createFileRoute("/cart")({
 function CartPage() {
   const cart = useCart();
   const exVat = cart.totalInclVat / (1 + VAT_RATE);
+
+  useEffect(() => {
+    if (cart.lines.length === 0) return;
+    track("view_cart", { value: cart.totalInclVat, items: cart.lines.map(itemPayload) });
+    // Only the initial view of a non-empty cart is reported.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   if (cart.lines.length === 0) {
     return (
@@ -61,7 +76,18 @@ function CartPage() {
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => cart.remove(line.productId)} aria-label="Remove">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    track("remove_from_cart", {
+                      value: line.price * line.quantity,
+                      items: [itemPayload(line)],
+                    });
+                    cart.remove(line.productId);
+                  }}
+                  aria-label="Remove"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>

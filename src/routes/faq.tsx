@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import {
   Accordion,
   AccordionContent,
@@ -84,7 +85,9 @@ export const Route = createFileRoute("/faq")({
           })),
         }),
       },
+      canonicalHead("/faq").meta,
     ],
+    links: [canonicalHead("/faq").link],
   }),
   component: FaqPage,
 });

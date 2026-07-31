@@ -1,3 +1,4 @@
+import { noindexMeta } from "@/lib/site";
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Sign in to your TechNest account to track orders, save wishlists and check out faster." },
       { property: "og:title", content: "Sign In or Register | TechNest" },
       { property: "og:description", content: "Access your TechNest account." },
+      noindexMeta,
     ],
   }),
   component: AuthPage,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { noindexMeta } from "@/lib/site";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useCart } from "@/lib/cart";
 import { formatZAR, VAT_RATE } from "@/lib/format";
-import { track, itemPayload } from "@/lib/analytics";
+import { track, trackOnce, itemPayload } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder } from "@/lib/orders.functions";
@@ -55,6 +56,7 @@ export const Route = createFileRoute("/checkout")({
       { property: "og:description", content: "Complete your TechNest order — Gauteng delivery or collection." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      noindexMeta,
     ],
   }),
   component: Checkout,
@@ -172,7 +174,7 @@ function Checkout() {
       return;
     }
     setEnquirySent(true);
-    track("delivery_enquiry", { province, value: cart.totalInclVat });
+    track("delivery_enquiry_submitted", { province, value: cart.totalInclVat });
     toast.success("Delivery enquiry sent — our team will quote you directly. No order was placed.");
   };
 
@@ -250,13 +252,22 @@ function Checkout() {
         return;
       }
 
-      track("purchase", {
+      // An order is a REQUEST, not revenue: no payment gateway is connected and
+      // the order is created unpaid. `purchase` is fired later, once payment is
+      // confirmed by an authorised staff member (see the admin order panel).
+      trackOnce("order_submitted", String(result.order.id ?? result.order.order_number), {
         transaction_id: result.order.order_number,
         value: Number(result.order.total_incl_vat),
         tax: Number(result.order.vat_amount ?? 0),
         shipping: Number(result.order.delivery_fee ?? 0),
+        payment_status: "unpaid",
         items: cart.lines.map(itemPayload),
       });
+      trackOnce("manual_eft_selected", String(result.order.id ?? result.order.order_number), {
+        transaction_id: result.order.order_number,
+        value: Number(result.order.total_incl_vat),
+      });
+
       cart.clear();
       toast.success(
         `Order ${result.order.order_number} received — ${

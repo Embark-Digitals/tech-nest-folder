@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { useQuery } from "@tanstack/react-query";
 import { Mail, MapPin, Phone } from "lucide-react";
+import { ContactForm } from "@/components/site/ContactForm";
 import { ContentPage } from "@/components/site/ContentPage";
 import { siteSettingsQuery } from "@/lib/catalogue";
 
@@ -17,7 +19,9 @@ export const Route = createFileRoute("/contact")({
       { property: "og:description", content: "Sales, delivery and support contact details for TechNest." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      canonicalHead("/contact").meta,
     ],
+    links: [canonicalHead("/contact").link],
   }),
   component: ContactPage,
 });
@@ -53,6 +57,14 @@ function ContactPage() {
         </div>
       </section>
       <section>
+        <h2>Send us a message</h2>
+        <p>
+          Fill in the form and our team will reply by email. Fields marked * are required.
+        </p>
+        <ContactForm />
+      </section>
+      <section>
+
         <h2>Business hours</h2>
         <ul>
           <li>Monday to Friday: 08:00 – 17:00 SAST</li>
