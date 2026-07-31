@@ -23,7 +23,10 @@ const rowSchema = z.object({
   product_name: z.string().max(500).nullable(),
   short_description: z.string().max(2000).nullable(),
   specifications_text: z.string().max(8000).nullable(),
+  brand_raw: z.string().max(200).nullable().optional(),
+  category_raw: z.string().max(200).nullable().optional(),
   availability_raw: z.string().max(300).nullable(),
+
   dealer_price_ex_vat: z.number().nullable(),
   promotional_price_ex_vat: z.number().nullable(),
   raw_row: z.record(z.string(), z.unknown()),
@@ -42,8 +45,11 @@ const createSchema = z.object({
   rows_examined: z.number().int(),
   warnings: z.array(z.string()),
   is_test: z.boolean().default(false),
+  /** Only an explicit administrator action may re-process an already-seen file. */
+  force_reprocess: z.boolean().default(false),
   rows: z.array(rowSchema).max(20000),
 });
+
 
 type Row = z.infer<typeof rowSchema>;
 
@@ -105,14 +111,24 @@ export const createSupplierImport = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // --- duplicate file protection -------------------------------------
-    const { data: dupe } = await supabaseAdmin
+    // Checksum is compared against every previous batch, so re-uploading the
+    // storage object cannot bypass this. Re-processing requires force_reprocess,
+    // which the panel only sends after an explicit administrator confirmation.
+    const { data: dupes } = await supabaseAdmin
       .from("catalogue_imports")
       .select("id, file_name, created_at, status")
       .eq("file_checksum", data.checksum)
-      .maybeSingle();
-    if (dupe) {
-      return { ok: false as const, duplicate: dupe, error: "This exact file has already been uploaded." };
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const dupe = dupes?.[0];
+    if (dupe && !data.force_reprocess) {
+      return {
+        ok: false as const,
+        duplicate: dupe,
+        error: `This exact file (identical checksum) was already uploaded on ${new Date(dupe.created_at).toLocaleString("en-ZA")} as "${dupe.file_name}" (${dupe.status}). No duplicate batch was created.`,
+      };
     }
+
 
     // --- pricing settings snapshot -------------------------------------
     const { data: pricing } = await supabaseAdmin
@@ -143,6 +159,24 @@ export const createSupplierImport = createServerFn({ method: "POST" })
       const n = norm(p.name);
       if (n && !byName.has(n)) byName.set(n, p);
     }
+
+    // --- brand / category index (mapping proposals) ----------------------
+    const { data: brandRows } = await supabaseAdmin.from("brands").select("id, name").eq("is_active", true);
+    const { data: catRows } = await supabaseAdmin.from("categories").select("id, name").eq("is_active", true);
+    const brandIndex = new Map<string, { id: string; name: string }>();
+    for (const b of brandRows ?? []) brandIndex.set(norm(b.name), b as any);
+    const catIndex = new Map<string, { id: string; name: string }>();
+    for (const c of catRows ?? []) catIndex.set(norm(c.name), c as any);
+
+    /** Resolve free text to an existing brand/category, exact then contained-token. */
+    const resolve = (index: Map<string, { id: string; name: string }>, raw: string | null | undefined) => {
+      const key = norm(raw);
+      if (!key) return null;
+      if (index.has(key)) return index.get(key)!;
+      for (const [k, v] of index) if (k && (key === k || key.split(" ").includes(k))) return v;
+      return null;
+    };
+
 
     // --- create the batch ----------------------------------------------
     const { data: batch, error: batchError } = await supabaseAdmin
@@ -185,12 +219,18 @@ export const createSupplierImport = createServerFn({ method: "POST" })
           product_name: r.product_name,
           raw_row: r.raw_row,
           normalised: {
+            source_file: data.file_name,
             short_description: r.short_description,
             specifications_text: r.specifications_text,
             availability_raw: r.availability_raw,
+            brand_raw: r.brand_raw ?? null,
+            category_raw: r.category_raw ?? r.source_section ?? null,
             dealer_price_ex_vat: r.dealer_price_ex_vat,
             promotional_price_ex_vat: r.promotional_price_ex_vat,
+            supplier_price_ex_vat: r.promotional_price_ex_vat ?? r.dealer_price_ex_vat,
+            existing_price_incl_vat: null as number | null,
           },
+
           proposed_changes: {},
           ai_fields: {},
           matched_product_id: null as string | null,
@@ -213,11 +253,24 @@ export const createSupplierImport = createServerFn({ method: "POST" })
           };
         }
 
+        const src = r.source_worksheet
+          ? `${data.file_name} · ${r.source_worksheet} · row ${r.source_row_number}`
+          : `${data.file_name} · page ${r.source_page} · line ${r.source_row_number}`;
+
+        // ---- brand / category resolution --------------------------------
+        const brandHit = resolve(brandIndex, r.brand_raw ?? r.product_name?.split(" ")[0] ?? null);
+        const catHit = resolve(catIndex, r.category_raw ?? r.source_section ?? null);
+        const mappingNotes: string[] = [];
+        if ((r.brand_raw ?? "").trim() && !brandHit) mappingNotes.push(`Unknown brand "${r.brand_raw}" — no matching TechNest brand.`);
+        if ((r.category_raw ?? r.source_section ?? "").trim() && !catHit)
+          mappingNotes.push(`Unknown category "${r.category_raw ?? r.source_section}" — no matching TechNest category.`);
+
         // ---- matching priority ------------------------------------------
         const sku = (r.supplier_sku ?? "").toUpperCase();
         let match: any = null;
         let method = "";
         let score = 0;
+        let ambiguousWith: string[] = [];
         if (sku && bySupplierSku.has(sku)) {
           match = bySupplierSku.get(sku); method = "supplier_sku"; score = 100;
         } else if (r.model_number && byModel.has(r.model_number.toUpperCase())) {
@@ -229,41 +282,80 @@ export const createSupplierImport = createServerFn({ method: "POST" })
         } else if (r.product_name && byName.has(norm(r.product_name))) {
           match = byName.get(norm(r.product_name)); method = "exact_normalised_name"; score = 78;
         } else if (r.product_name) {
-          let best: any = null;
-          let bestScore = 0;
-          for (const p of list) {
-            const s = similarity(r.product_name, p.name);
-            if (s > bestScore) { bestScore = s; best = p; }
+          const scored = list
+            .map((p) => ({ p, s: similarity(r.product_name!, p.name) }))
+            .filter((x) => x.s >= 0.86)
+            .sort((a, b) => b.s - a.s);
+          // A supplier code that exists in no TechNest field is a NEW product.
+          // Never let a loose name resemblance turn it into an update of a
+          // different product — that silently rewrites the wrong record.
+          if (scored.length && !sku) {
+            match = scored[0].p; method = "probable_name_similarity"; score = Math.round(scored[0].s * 65);
+            // Two or more near-identical candidates cannot be resolved safely.
+            ambiguousWith = scored.filter((x) => scored[0].s - x.s <= 0.02).map((x) => x.p.name).slice(0, 4);
+          } else if (scored.length) {
+            mappingNotes.push(
+              `Unrecognised supplier code "${r.supplier_sku}" — treated as a new product. Closest existing product: "${scored[0].p.name}" (${Math.round(scored[0].s * 100)}% name similarity). Reject this row if it is the same item under a new code.`,
+            );
           }
-          if (bestScore >= 0.72) { match = best; method = "probable_name_similarity"; score = Math.round(bestScore * 65); }
         }
 
+
         if (!match) {
+          const brandChanges: Record<string, any> = {};
+          if (brandHit) brandChanges["brand_id"] = { old: null, new: brandHit.id, source: src, confidence: "medium", label: brandHit.name };
+          if (catHit) brandChanges["category_id"] = { old: null, new: catHit.id, source: src, confidence: "medium", label: catHit.name };
+          // A brand-new line that the supplier already marks end-of-life should
+          // never be created as a live product without a human decision.
+          const newButDead = DISCONTINUED_RE.test(r.availability_raw ?? "");
+          if (newButDead)
+            mappingNotes.push(
+              `Supplier lists this new line as "${r.availability_raw}" — it will be created as discontinued and stay unpublished.`,
+            );
           return {
             ...base,
-            change_type: "new",
+            change_type: newButDead ? "discontinued" : "new",
             match_method: "none",
             match_reason: "No existing product matched on supplier code, model, part number, TechNest code or name.",
             match_confidence: 100,
-            confidence_band: "high",
+            confidence_band: mappingNotes.length ? "medium" : "high",
+            proposed_changes: brandChanges,
+            review_reason: mappingNotes.join(" ") || null,
             decision: "pending",
           };
         }
 
-        matchedIds.add(match.id);
-        const isDiscontinued = DISCONTINUED_RE.test(r.availability_raw ?? "");
-        const changes: Record<string, { old: unknown; new: unknown; source: string; confidence: string }> = {};
-        const src = r.source_worksheet
-          ? `${data.file_name} · ${r.source_worksheet} · row ${r.source_row_number}`
-          : `${data.file_name} · page ${r.source_page} · line ${r.source_row_number}`;
 
-        const propose = (field: string, oldVal: unknown, newVal: unknown, confidence = band(score)) => {
+        matchedIds.add(match.id);
+        (base.normalised as any).existing_price_incl_vat = match.selling_price_incl_vat ?? null;
+
+        if (ambiguousWith.length > 1) {
+          return {
+            ...base,
+            matched_product_id: null,
+            match_method: "ambiguous",
+            match_reason: `Several existing products match this description equally well: ${ambiguousWith.join(" | ")}.`,
+            match_confidence: score,
+            confidence_band: "manual_review",
+            change_type: "ambiguous",
+            review_reason: "Ambiguous match — an administrator must pick the correct product before this row can be applied.",
+            decision: "pending",
+          };
+        }
+
+        const isDiscontinued = DISCONTINUED_RE.test(r.availability_raw ?? "");
+        const changes: Record<string, { old: unknown; new: unknown; source: string; confidence: string; label?: string }> = {};
+
+        const propose = (field: string, oldVal: unknown, newVal: unknown, confidence = band(score), label?: string) => {
           if (newVal === null || newVal === undefined || String(newVal).trim() === "") return; // never blank out
           if (String(oldVal ?? "") === String(newVal)) return;
-          changes[field] = { old: oldVal ?? null, new: newVal, source: src, confidence };
+          changes[field] = { old: oldVal ?? null, new: newVal, source: src, confidence, ...(label ? { label } : {}) };
         };
 
-        propose("name", match.name, r.product_name);
+        // Low-confidence matches may never overwrite verified, filled values.
+        const lowConfidence = score < 90;
+
+        if (!lowConfidence) propose("name", match.name, r.product_name);
         // Do not replace a longer, filled description with a shorter extracted one
         if (!match.short_description || (r.short_description ?? "").length >= (match.short_description ?? "").length) {
           propose("short_description", match.short_description, r.short_description);
@@ -272,8 +364,20 @@ export const createSupplierImport = createServerFn({ method: "POST" })
         propose("dealer_price_ex_vat", match.dealer_price_ex_vat, r.dealer_price_ex_vat);
         propose("promotional_price_ex_vat", match.promotional_price_ex_vat, r.promotional_price_ex_vat);
         propose("source_availability_raw", match.source_availability_raw, r.availability_raw);
+        if (brandHit && !match.brand_id && !match.brand_verified)
+          propose("brand_id", match.brand_id, brandHit.id, "medium", brandHit.name);
+        if (catHit && !match.category_id && !match.category_verified)
+          propose("category_id", match.category_id, catHit.id, "medium", catHit.name);
 
         const changeType = isDiscontinued ? "discontinued" : Object.keys(changes).length ? "update" : "unchanged";
+
+        const reasons = [
+          method === "probable_name_similarity"
+            ? "Loose name match — confirm this is the same product before approving."
+            : null,
+          lowConfidence ? "Low-confidence match: verified product names are never overwritten." : null,
+          ...mappingNotes,
+        ].filter(Boolean);
 
         return {
           ...base,
@@ -287,13 +391,11 @@ export const createSupplierImport = createServerFn({ method: "POST" })
           confidence_band: band(score),
           change_type: changeType,
           proposed_changes: changes,
-          review_reason:
-            method === "probable_name_similarity"
-              ? "Loose name match — confirm this is the same product before approving."
-              : null,
+          review_reason: reasons.join(" ") || null,
           decision: "pending",
         };
       });
+
 
     for (let i = 0; i < inserts.length; i += 500) {
       const { error } = await supabaseAdmin.from("catalogue_import_rows").insert(inserts.slice(i, i + 500) as any);
@@ -306,8 +408,17 @@ export const createSupplierImport = createServerFn({ method: "POST" })
     }, {});
     const reviewCount = inserts.filter((r: any) => r.confidence_band !== "high" || r.review_reason).length;
 
-    // Products in the catalogue that this file did not mention.
+    // Products in the catalogue that this file did not mention. These are
+    // listed for review as "missing" rows — never unpublished automatically.
     const absent = list.filter((p) => !matchedIds.has(p.id) && !p.is_discontinued).length;
+    let missingRows = 0;
+    if (data.supplier) {
+      const { data: n } = await context.supabase.rpc("flag_absent_products", {
+        _import_id: batch.id,
+        _supplier: data.supplier,
+      });
+      missingRows = Number(n ?? 0);
+    }
 
     await supabaseAdmin
       .from("catalogue_imports")
@@ -315,12 +426,19 @@ export const createSupplierImport = createServerFn({ method: "POST" })
         skipped_count: counts["ignored"] ?? 0,
         error_count: counts["error"] ?? 0,
         rejected_count: 0,
-        review_count: reviewCount,
-        summary: { ...counts, absent_from_file: absent },
+        review_count: reviewCount + missingRows,
+        summary: { ...counts, missing: missingRows, absent_from_file: absent },
       })
       .eq("id", batch.id);
 
-    return { ok: true as const, import_id: batch.id, counts, review_count: reviewCount, absent_from_file: absent };
+    return {
+      ok: true as const,
+      import_id: batch.id,
+      counts: { ...counts, missing: missingRows },
+      review_count: reviewCount + missingRows,
+      absent_from_file: absent,
+    };
+
   });
 
 /* ================================================================== */
@@ -356,6 +474,14 @@ export const decideImportRows = createServerFn({ method: "POST" })
     } else {
       q = q.in("change_type", ["new", "update", "discontinued"]);
     }
+
+    // Only applicable, valid rows may ever be approved — ambiguous, invalid,
+    // duplicate and missing rows stay out of the apply set no matter what the
+    // browser selected.
+    if (data.decision === "approved") {
+      q = q.in("change_type", ["new", "update", "discontinued"]).is("validation_error", null);
+    }
+
 
     const { data: touched, error } = await q.select("id");
     if (error) return { ok: false as const, error: error.message };
@@ -408,6 +534,7 @@ export const applySupplierImport = createServerFn({ method: "POST" })
     }
     return { ok: true as const, ...(result as Record<string, number>), flagged_for_review: flagged };
   });
+
 
 export const rollbackSupplierImport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -76,7 +76,9 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { tryNotify } = await import("@/lib/email/notifications.server");
 
