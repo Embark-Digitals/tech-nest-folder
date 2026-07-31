@@ -204,7 +204,7 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
         headerScore(cells) >= 3 &&
         !(columns && columns["promotional_price_ex_vat"] !== undefined &&
           parsePrice(cells[columns["promotional_price_ex_vat"]]) !== null);
-      if (looksLikeHeader) {
+      if (looksLikeHeader && Object.keys(mapColumns(cells)).length >= 3) {
         const signature = cells.join("|");
         if (columns && signature === headerCells) {
           result.repeated_headers++;
