@@ -284,14 +284,22 @@ export const createSupplierImport = createServerFn({ method: "POST" })
         } else if (r.product_name) {
           const scored = list
             .map((p) => ({ p, s: similarity(r.product_name!, p.name) }))
-            .filter((x) => x.s >= 0.72)
+            .filter((x) => x.s >= 0.86)
             .sort((a, b) => b.s - a.s);
-          if (scored.length) {
+          // A supplier code that exists in no TechNest field is a NEW product.
+          // Never let a loose name resemblance turn it into an update of a
+          // different product — that silently rewrites the wrong record.
+          if (scored.length && !sku) {
             match = scored[0].p; method = "probable_name_similarity"; score = Math.round(scored[0].s * 65);
             // Two or more near-identical candidates cannot be resolved safely.
             ambiguousWith = scored.filter((x) => scored[0].s - x.s <= 0.02).map((x) => x.p.name).slice(0, 4);
+          } else if (scored.length) {
+            mappingNotes.push(
+              `Unrecognised supplier code "${r.supplier_sku}" — treated as a new product. Closest existing product: "${scored[0].p.name}" (${Math.round(scored[0].s * 100)}% name similarity). Reject this row if it is the same item under a new code.`,
+            );
           }
         }
+
 
         if (!match) {
           const brandChanges: Record<string, any> = {};
