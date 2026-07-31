@@ -88,6 +88,7 @@ function AdminPage() {
           <TabsTrigger value="crm">CRM</TabsTrigger>
           <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}

@@ -47,6 +47,9 @@ export type PlaceOrderResult =
         vat_amount: number;
         delivery_fee: number;
         total_incl_vat: number;
+        delivery_method: string | null;
+        delivery_zone_name: string | null;
+        delivery_estimate: string | null;
         duplicate: boolean;
       };
     }

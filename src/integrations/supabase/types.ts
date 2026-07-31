@@ -606,6 +606,99 @@ export type Database = {
           },
         ]
       }
+      delivery_class_rules: {
+        Row: {
+          collection_only: boolean
+          created_at: string
+          delivery_class: Database["public"]["Enums"]["delivery_class"]
+          id: string
+          is_active: boolean
+          label: string
+          requires_manual_quote: boolean
+          surcharge: number
+          updated_at: string
+        }
+        Insert: {
+          collection_only?: boolean
+          created_at?: string
+          delivery_class: Database["public"]["Enums"]["delivery_class"]
+          id?: string
+          is_active?: boolean
+          label: string
+          requires_manual_quote?: boolean
+          surcharge?: number
+          updated_at?: string
+        }
+        Update: {
+          collection_only?: boolean
+          created_at?: string
+          delivery_class?: Database["public"]["Enums"]["delivery_class"]
+          id?: string
+          is_active?: boolean
+          label?: string
+          requires_manual_quote?: boolean
+          surcharge?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      delivery_enquiries: {
+        Row: {
+          address_line1: string | null
+          city: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          estimated_subtotal_incl_vat: number | null
+          handled_by: string | null
+          id: string
+          items: Json
+          message: string | null
+          postal_code: string | null
+          province: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          city?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          estimated_subtotal_incl_vat?: number | null
+          handled_by?: string | null
+          id?: string
+          items?: Json
+          message?: string | null
+          postal_code?: string | null
+          province: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          city?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          estimated_subtotal_incl_vat?: number | null
+          handled_by?: string | null
+          id?: string
+          items?: Json
+          message?: string | null
+          postal_code?: string | null
+          province?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       email_events: {
         Row: {
           attempted_at: string | null
@@ -761,8 +854,14 @@ export type Database = {
           created_at: string
           customer_notes: string | null
           delivery_address: Json | null
+          delivery_estimate: string | null
           delivery_fee: number
           delivery_method: string | null
+          delivery_province: string | null
+          delivery_quote: Json | null
+          delivery_surcharges: Json
+          delivery_zone_id: string | null
+          delivery_zone_name: string | null
           id: string
           idempotency_key: string | null
           order_number: string
@@ -790,8 +889,14 @@ export type Database = {
           created_at?: string
           customer_notes?: string | null
           delivery_address?: Json | null
+          delivery_estimate?: string | null
           delivery_fee?: number
           delivery_method?: string | null
+          delivery_province?: string | null
+          delivery_quote?: Json | null
+          delivery_surcharges?: Json
+          delivery_zone_id?: string | null
+          delivery_zone_name?: string | null
           id?: string
           idempotency_key?: string | null
           order_number?: string
@@ -819,8 +924,14 @@ export type Database = {
           created_at?: string
           customer_notes?: string | null
           delivery_address?: Json | null
+          delivery_estimate?: string | null
           delivery_fee?: number
           delivery_method?: string | null
+          delivery_province?: string | null
+          delivery_quote?: Json | null
+          delivery_surcharges?: Json
+          delivery_zone_id?: string | null
+          delivery_zone_name?: string | null
           id?: string
           idempotency_key?: string | null
           order_number?: string
@@ -839,7 +950,15 @@ export type Database = {
           user_id?: string | null
           vat_amount?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_delivery_zone_id_fkey"
+            columns: ["delivery_zone_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pricing_audit_log: {
         Row: {
@@ -997,6 +1116,9 @@ export type Database = {
           colour: string | null
           created_at: string
           dealer_price_ex_vat: number | null
+          delivery_class: Database["public"]["Enums"]["delivery_class"]
+          delivery_note: string | null
+          delivery_restricted: boolean
           full_description: string | null
           id: string
           image_required: boolean
@@ -1059,6 +1181,9 @@ export type Database = {
           colour?: string | null
           created_at?: string
           dealer_price_ex_vat?: number | null
+          delivery_class?: Database["public"]["Enums"]["delivery_class"]
+          delivery_note?: string | null
+          delivery_restricted?: boolean
           full_description?: string | null
           id?: string
           image_required?: boolean
@@ -1121,6 +1246,9 @@ export type Database = {
           colour?: string | null
           created_at?: string
           dealer_price_ex_vat?: number | null
+          delivery_class?: Database["public"]["Enums"]["delivery_class"]
+          delivery_note?: string | null
+          delivery_restricted?: boolean
           full_description?: string | null
           id?: string
           image_required?: boolean
@@ -1229,6 +1357,203 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      shipping_postal_rules: {
+        Row: {
+          action: Database["public"]["Enums"]["postal_rule_action"]
+          code_from: number
+          code_to: number
+          created_at: string
+          id: string
+          is_active: boolean
+          note: string | null
+          override_fee: number | null
+          priority: number
+          province_code: string | null
+          surcharge: number
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          action?: Database["public"]["Enums"]["postal_rule_action"]
+          code_from: number
+          code_to: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          override_fee?: number | null
+          priority?: number
+          province_code?: string | null
+          surcharge?: number
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["postal_rule_action"]
+          code_from?: number
+          code_to?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          note?: string | null
+          override_fee?: number | null
+          priority?: number
+          province_code?: string | null
+          surcharge?: number
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_postal_rules_province_code_fkey"
+            columns: ["province_code"]
+            isOneToOne: false
+            referencedRelation: "shipping_provinces"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "shipping_postal_rules_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_provinces: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_settings: {
+        Row: {
+          collection_address: string
+          collection_enabled: boolean
+          collection_instructions: string
+          created_at: string
+          id: string
+          manual_quote_enabled: boolean
+          unsupported_area_message: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          collection_address?: string
+          collection_enabled?: boolean
+          collection_instructions?: string
+          created_at?: string
+          id?: string
+          manual_quote_enabled?: boolean
+          unsupported_area_message?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          collection_address?: string
+          collection_enabled?: boolean
+          collection_instructions?: string
+          created_at?: string
+          id?: string
+          manual_quote_enabled?: boolean
+          unsupported_area_message?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      shipping_zones: {
+        Row: {
+          allowed_delivery_classes: Database["public"]["Enums"]["delivery_class"][]
+          base_fee: number
+          collection_enabled: boolean
+          created_at: string
+          estimate_max_days: number
+          estimate_min_days: number
+          free_delivery_threshold: number | null
+          id: string
+          is_active: boolean
+          is_suspended: boolean
+          name: string
+          province_code: string
+          remote_surcharge: number
+          slug: string
+          sort_order: number
+          suspension_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          allowed_delivery_classes?: Database["public"]["Enums"]["delivery_class"][]
+          base_fee?: number
+          collection_enabled?: boolean
+          created_at?: string
+          estimate_max_days?: number
+          estimate_min_days?: number
+          free_delivery_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          is_suspended?: boolean
+          name: string
+          province_code: string
+          remote_surcharge?: number
+          slug: string
+          sort_order?: number
+          suspension_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allowed_delivery_classes?: Database["public"]["Enums"]["delivery_class"][]
+          base_fee?: number
+          collection_enabled?: boolean
+          created_at?: string
+          estimate_max_days?: number
+          estimate_min_days?: number
+          free_delivery_threshold?: number | null
+          id?: string
+          is_active?: boolean
+          is_suspended?: boolean
+          name?: string
+          province_code?: string
+          remote_surcharge?: number
+          slug?: string
+          sort_order?: number
+          suspension_note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_zones_province_code_fkey"
+            columns: ["province_code"]
+            isOneToOne: false
+            referencedRelation: "shipping_provinces"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       site_settings: {
         Row: {
@@ -1372,6 +1697,16 @@ export type Database = {
         }
         Returns: Json
       }
+      quote_delivery: {
+        Args: {
+          _city: string
+          _items: Json
+          _method: string
+          _postal_code: string
+          _province: string
+        }
+        Returns: Json
+      }
       release_order_stock: { Args: { _order_id: string }; Returns: undefined }
       rollback_catalogue_import: { Args: { _import_id: string }; Returns: Json }
       set_order_status: {
@@ -1392,6 +1727,13 @@ export type Database = {
         | "customer"
       checkout_mode: "live_payment" | "manual_eft" | "request_order"
       crm_task_status: "open" | "in_progress" | "done" | "cancelled"
+      delivery_class:
+        | "standard"
+        | "fragile"
+        | "oversized"
+        | "heavy"
+        | "supplier_confirmation"
+        | "collection_only"
       email_status:
         | "pending"
         | "sent"
@@ -1438,6 +1780,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "refunded"
+        | "ready_for_collection"
       pipeline_stage:
         | "new"
         | "contacted"
@@ -1445,6 +1788,7 @@ export type Database = {
         | "negotiating"
         | "won"
         | "lost"
+      postal_rule_action: "include" | "exclude" | "override" | "remote"
       rounding_method: "exact" | "nearest_rand" | "nearest_ten" | "ends_99"
       stock_status:
         | "available"
@@ -1598,6 +1942,14 @@ export const Constants = {
       ],
       checkout_mode: ["live_payment", "manual_eft", "request_order"],
       crm_task_status: ["open", "in_progress", "done", "cancelled"],
+      delivery_class: [
+        "standard",
+        "fragile",
+        "oversized",
+        "heavy",
+        "supplier_confirmation",
+        "collection_only",
+      ],
       email_status: [
         "pending",
         "sent",
@@ -1649,6 +2001,7 @@ export const Constants = {
         "delivered",
         "cancelled",
         "refunded",
+        "ready_for_collection",
       ],
       pipeline_stage: [
         "new",
@@ -1658,6 +2011,7 @@ export const Constants = {
         "won",
         "lost",
       ],
+      postal_rule_action: ["include", "exclude", "override", "remote"],
       rounding_method: ["exact", "nearest_rand", "nearest_ten", "ends_99"],
       stock_status: [
         "available",
