@@ -119,6 +119,14 @@ function mapColumns(cells: string[]): Record<string, number> {
 const FOOTER_RE =
   /(e&oe|terms|conditions|subject to change|disclaimer|errors and omissions|reserve the right|prices exclude|contact us|tel:|email:|www\.)/i;
 
+/** Merged cells repeat the same text; collapse it to a single label. */
+function sectionLabel(cells: string[]): string {
+  const filled = cells.filter(Boolean);
+  const unique: string[] = [];
+  for (const c of filled) if (unique[unique.length - 1] !== c) unique.push(c);
+  return clean(unique.join(" ")).toUpperCase().slice(0, 120);
+}
+
 function isDecorative(cells: string[]): boolean {
   const joined = cells.join("").trim();
   return !joined || /^[.\-–—_\s*]+$/.test(joined);
@@ -191,8 +199,12 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
 
       const joined = cells.join(" ");
 
-      // header / repeated header
-      if (headerScore(cells) >= 3) {
+      // header / repeated header — a row holding a parsable price is data, not a header
+      const looksLikeHeader =
+        headerScore(cells) >= 3 &&
+        !(columns && columns["promotional_price_ex_vat"] !== undefined &&
+          parsePrice(cells[columns["promotional_price_ex_vat"]]) !== null);
+      if (looksLikeHeader) {
         const signature = cells.join("|");
         if (columns && signature === headerCells) {
           result.repeated_headers++;
@@ -212,7 +224,7 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
       }
 
       if (!columns) {
-        section = clean(joined).toUpperCase().slice(0, 120);
+        section = sectionLabel(cells);
         result.ignored_rows++;
         return push({ ignored_as: "section" });
       }
@@ -223,9 +235,10 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
       const sku = at("supplier_sku");
       const name = at("product_name");
 
-      if (isBanner(values) || (!sku && !name)) {
-        // a merged banner or a spanning label row is a section heading
-        section = clean(joined).toUpperCase().slice(0, 120) || section;
+      const filledCells = cells.filter(Boolean);
+      if (isBanner(values) || (!sku && !name) || filledCells.length <= 1 || new Set(filledCells).size === 1) {
+        // a merged banner, a spanning label or a lone-cell row is a section heading
+        section = sectionLabel(cells) || section;
         result.ignored_rows++;
         return push({ ignored_as: "section" });
       }
@@ -294,7 +307,9 @@ async function extractPdf(buffer: ArrayBuffer, result: ExtractionResult) {
     "PDF tables are reconstructed from text positions. Every extracted row is marked for manual review before it can be applied.",
   );
 
-  const priceRe = /R?\s?(\d{1,3}(?:[ ,]\d{3})*(?:\.\d{2})?)/g;
+  // Require a decimal amount or an explicit R prefix so years and model
+  // numbers in headings are never mistaken for prices.
+  const priceRe = /(?:R\s?)(\d[\d ,]*(?:\.\d{1,2})?)|(\d[\d ,]*\.\d{2})\b/g;
 
   pages.forEach((pageText, p) => {
     const lines = String(pageText).split("\n");
@@ -339,7 +354,9 @@ async function extractPdf(buffer: ArrayBuffer, result: ExtractionResult) {
       }
 
       const codeMatch = t.match(/^([A-Z0-9][A-Z0-9._/-]{3,})\s+(.*)$/);
-      const prices = [...t.matchAll(priceRe)].map((m) => parsePrice(m[1])).filter((n): n is number => n !== null);
+      const prices = [...t.matchAll(priceRe)]
+        .map((m) => parsePrice(m[1] ?? m[2]))
+        .filter((n): n is number => n !== null);
 
       if (!codeMatch || prices.length === 0) {
         if (t.length < 60 && !/\d/.test(t)) section = t.toUpperCase();
