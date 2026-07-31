@@ -9,7 +9,7 @@
  */
 import * as XLSX from "xlsx";
 
-export const PARSER_VERSION = "technest-supplier-parser/2.0.0";
+export const PARSER_VERSION = "technest-supplier-parser/2.1.0";
 
 export type SourceFormat = "xlsx" | "xls" | "csv" | "pdf_text" | "pdf_scanned" | "unsupported";
 
@@ -24,6 +24,8 @@ export type ExtractedRow = {
   product_name: string | null;
   short_description: string | null;
   specifications_text: string | null;
+  brand_raw: string | null;
+  category_raw: string | null;
   availability_raw: string | null;
   dealer_price_ex_vat: number | null;
   promotional_price_ex_vat: number | null;
@@ -81,6 +83,8 @@ const COLUMN_TOKENS: Record<string, RegExp> = {
   part_number: /^(part\s*(no|number)|mpn)$/i,
   product_name: /^(description|product\s*(description|name)|name|product)$/i,
   specifications_text: /^(spec(ification)?s?|features|details)$/i,
+  brand_raw: /^(brand|make|manufacturer|supplier\s*brand)$/i,
+  category_raw: /^(category|categories|product\s*(type|group|category)|department|range)$/i,
   availability_raw: /^(availability|stock|stock\s*status|status|soh)$/i,
   dealer_price_ex_vat: /^(dealer|dealer\s*price|cost|cost\s*price|trade\s*price)( excl.*)?$/i,
   promotional_price_ex_vat: /^(promo(tional)?\s*price|promo|special|selling\s*price|price)( excl.*)?$/i,
@@ -112,6 +116,8 @@ function mapColumns(cells: string[]): Record<string, number> {
     if (map.supplier_sku === undefined && /\bcode\b|\bsku\b/.test(t)) map.supplier_sku = i;
     if (map.availability_raw === undefined && /avail|stock/.test(t)) map.availability_raw = i;
     if (map.specifications_text === undefined && /spec/.test(t)) map.specifications_text = i;
+    if (map.brand_raw === undefined && /\bbrand\b|manufactur/.test(t)) map.brand_raw = i;
+    if (map.category_raw === undefined && /categor|department/.test(t)) map.category_raw = i;
   });
   return map;
 }
@@ -183,6 +189,8 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
           product_name: null,
           short_description: null,
           specifications_text: null,
+          brand_raw: null,
+          category_raw: null,
           availability_raw: null,
           dealer_price_ex_vat: null,
           promotional_price_ex_vat: null,
@@ -277,6 +285,8 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
         product_name: name || null,
         short_description: name || null,
         specifications_text: at("specifications_text") || null,
+        brand_raw: at("brand_raw") || null,
+        category_raw: at("category_raw") || section || null,
         availability_raw: at("availability_raw") || null,
         dealer_price_ex_vat: dealer,
         promotional_price_ex_vat: promo,
@@ -339,6 +349,8 @@ async function extractPdf(buffer: ArrayBuffer, result: ExtractionResult) {
           product_name: null,
           short_description: null,
           specifications_text: null,
+          brand_raw: null,
+          category_raw: null,
           availability_raw: null,
           dealer_price_ex_vat: null,
           promotional_price_ex_vat: null,
@@ -377,6 +389,7 @@ async function extractPdf(buffer: ArrayBuffer, result: ExtractionResult) {
       push({
         supplier_sku: codeMatch[1],
         product_name: rest || null,
+        category_raw: section,
         short_description: rest || null,
         dealer_price_ex_vat: prices.length > 1 ? prices[prices.length - 2] : null,
         promotional_price_ex_vat: prices[prices.length - 1] ?? null,

@@ -44,6 +44,7 @@ const CHANGE_TONE: Record<string, string> = {
   unchanged: "bg-muted text-muted-foreground",
   discontinued: "bg-amber-100 text-amber-900",
   ambiguous: "bg-amber-100 text-amber-900",
+  missing: "bg-violet-100 text-violet-800",
   error: "bg-red-100 text-red-800",
   ignored: "bg-muted text-muted-foreground",
 };
@@ -59,6 +60,7 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [forceReprocess, setForceReprocess] = useState(false);
 
   const create = useServerFn(createSupplierImport);
   const decide = useServerFn(decideImportRows);
@@ -144,6 +146,7 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
           rows_examined: extraction.rows_examined,
           warnings: extraction.warnings,
           is_test: isTest,
+          force_reprocess: forceReprocess,
           rows: extraction.rows.filter((r) => !r.ignored_as || r.ignored_as === "duplicate"),
         },
       });
@@ -151,9 +154,11 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
     onSuccess: (res: any) => {
       setBusy(null);
       if (!res.ok) {
-        toast.error(res.duplicate ? `Duplicate upload — this file was already imported on ${new Date(res.duplicate.created_at).toLocaleDateString("en-ZA")}.` : res.error);
+        if (res.duplicate) setForceReprocess(true);
+        toast.error(res.error, { duration: 12000 });
         return;
       }
+      setForceReprocess(false);
       setActiveImport(res.import_id);
       qc.invalidateQueries({ queryKey: ["supplier-imports"] });
       toast.success("Dry run complete — review the proposed changes below.");
@@ -214,6 +219,16 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
           Label this batch as a test import
         </label>
 
+        {forceReprocess && (
+          <label className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <Checkbox checked={forceReprocess} onCheckedChange={(v) => setForceReprocess(!!v)} className="mt-0.5" />
+            <span>
+              This file has already been uploaded (identical checksum). Tick to deliberately process it again — a second
+              batch will be created. Untick to cancel.
+            </span>
+          </label>
+        )}
+
         {extraction && (
           <div className="mt-4 rounded-lg border bg-muted/30 p-4 text-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -255,7 +270,7 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
               <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["all", "new", "update", "unchanged", "discontinued", "error", "ignored"].map((f) => (
+                  {["all", "new", "update", "unchanged", "discontinued", "missing", "ambiguous", "error", "ignored"].map((f) => (
                     <SelectItem key={f} value={f}>{f === "all" ? "All rows" : f}</SelectItem>
                   ))}
                 </SelectContent>
@@ -312,7 +327,8 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
                   <th className="p-2">Change</th>
                   <th className="p-2">Match &amp; confidence</th>
                   <th className="p-2">Proposed changes</th>
-                  <th className="p-2 text-right">New customer price</th>
+                  <th className="p-2 text-right">Pricing</th>
+                  <th className="p-2">Warnings</th>
                   <th className="p-2">Decision</th>
                 </tr>
               </thead>
@@ -330,6 +346,7 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
                       />
                     </td>
                     <td className="p-2 text-xs text-muted-foreground">
+                      <div className="font-medium text-foreground">{r.normalised?.source_file ?? "—"}</div>
                       {r.source_worksheet ?? `page ${r.source_page}`}<br />row {r.source_row_number}
                       {r.source_section && <div className="mt-1 italic">{r.source_section}</div>}
                     </td>
@@ -359,8 +376,22 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
                         ))
                       )}
                     </td>
-                    <td className="p-2 text-right font-medium">
-                      {r.computed_price_incl_vat ? formatZAR(Number(r.computed_price_incl_vat)) : "—"}
+                    <td className="p-2 text-right text-xs">
+                      <div className="text-muted-foreground">
+                        existing {r.normalised?.existing_price_incl_vat ? formatZAR(Number(r.normalised.existing_price_incl_vat)) : "—"}
+                      </div>
+                      <div className="text-muted-foreground">
+                        supplier ex VAT {r.normalised?.supplier_price_ex_vat ? formatZAR(Number(r.normalised.supplier_price_ex_vat)) : "—"}
+                      </div>
+                      <div className="mt-1 text-sm font-medium text-foreground">
+                        {r.computed_price_incl_vat ? formatZAR(Number(r.computed_price_incl_vat)) : "—"}
+                      </div>
+                      <div className="text-[10px] uppercase text-muted-foreground">server-calculated</div>
+                    </td>
+                    <td className="p-2 max-w-64 text-xs text-amber-900">
+                      {r.validation_error && <div className="font-medium">{r.validation_error}</div>}
+                      {r.review_reason && <div>{r.review_reason}</div>}
+                      {!r.validation_error && !r.review_reason && <span className="text-muted-foreground">None</span>}
                     </td>
                     <td className="p-2"><Badge variant="outline">{r.decision}</Badge></td>
                   </tr>
