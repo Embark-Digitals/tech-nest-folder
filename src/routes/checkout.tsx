@@ -451,13 +451,14 @@ function Checkout() {
               {quote.free_delivery_applied ? " · free delivery threshold reached" : ""}
             </p>
           )}
+          {quote?.eligible && quote.requires_manual_quote && (
+            <p className="mt-2 rounded-md bg-secondary/60 p-2 text-xs text-muted-foreground">
+              Some items need supplier confirmation. We will confirm availability and lead time
+              before any payment is requested.
+            </p>
+          )}
           <Separator className="my-4" />
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total excl. VAT</span>
-            <span>{formatZAR(exVat)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">VAT (15%)</span>
+
             <span>{formatZAR(total - exVat)}</span>
           </div>
           <Separator className="my-4" />
