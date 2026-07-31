@@ -250,6 +250,13 @@ function Checkout() {
         return;
       }
 
+      track("purchase", {
+        transaction_id: result.order.order_number,
+        value: Number(result.order.total_incl_vat),
+        tax: Number(result.order.vat_amount ?? 0),
+        shipping: Number(result.order.delivery_fee ?? 0),
+        items: cart.lines.map(itemPayload),
+      });
       cart.clear();
       toast.success(
         `Order ${result.order.order_number} received — ${
