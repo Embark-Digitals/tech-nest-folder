@@ -201,11 +201,7 @@ export function TeamPanel({ currentUserId }: { currentUserId: string }) {
         Tip: ask a colleague to register at /auth first — they'll appear in this list, then you can
         grant them a role.
       </p>
-      <div className="hidden">
-        <Button variant="ghost" size="sm" disabled>
-          placeholder
-        </Button>
-      </div>
     </div>
   );
 }
+
