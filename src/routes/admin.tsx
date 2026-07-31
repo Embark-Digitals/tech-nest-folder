@@ -75,14 +75,20 @@ function AdminPage() {
     <div className="mx-auto max-w-7xl px-4 py-10">
       <h1 className="font-display text-3xl font-bold">Staff console</h1>
       <Tabs defaultValue="orders" className="mt-6">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="crm">CRM</TabsTrigger>
           <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
         </TabsList>
         <TabsContent value="orders" className="pt-6">
           <OrdersPanel />
+        </TabsContent>
+        <TabsContent value="crm" className="pt-6">
+          <CrmPanel currentUserId={user.id} />
         </TabsContent>
         <TabsContent value="catalogue" className="pt-6">
           <CataloguePanel />
@@ -90,12 +96,21 @@ function AdminPage() {
         <TabsContent value="import" className="pt-6">
           <ImportPanel userId={user.id} />
         </TabsContent>
+        <TabsContent value="reports" className="pt-6">
+          <ReportsPanel />
+        </TabsContent>
         {isAdmin && (
           <TabsContent value="pricing" className="pt-6">
             <PricingPanel userId={user.id} />
           </TabsContent>
         )}
+        {isAdmin && (
+          <TabsContent value="team" className="pt-6">
+            <TeamPanel currentUserId={user.id} />
+          </TabsContent>
+        )}
       </Tabs>
+
     </div>
   );
 }
