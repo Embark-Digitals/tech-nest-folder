@@ -76,9 +76,58 @@ export const placeOrder = createServerFn({ method: "POST" })
       return { ok: false, error: error.message.replace(/^.*?:\s*/, "") };
     }
 
-    return {
-      ok: true,
-      order: result as unknown as Extract<PlaceOrderResult, { ok: true }>["order"],
-    };
+    const order = result as unknown as Extract<PlaceOrderResult, { ok: true }>["order"];
+
+    // Notifications are best-effort: an email provider outage must never stop
+    // an order from being created. Failures are logged and stay retryable.
+    if (!order.duplicate) {
+      try {
+        const { tryNotify } = await import("@/lib/email/notifications.server");
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: settings } = await supabaseAdmin
+          .from("site_settings")
+          .select("store_email")
+          .limit(1)
+          .maybeSingle();
+
+        const orderBlock = {
+          order_number: order.order_number,
+          total_incl_vat: Number(order.total_incl_vat),
+          status: "new",
+        };
+
+        await tryNotify({
+          event_type: "order_confirmation",
+          recipient: data.contact_email,
+          order_id: order.id,
+          dedupe_key: `order_confirmation:${order.id}`,
+          subject: `TechNest order ${order.order_number} received`,
+          content: {
+            heading: `Thank you, ${data.contact_name}`,
+            intro: `We have received your order ${order.order_number}. Our team will confirm stock and be in touch shortly.`,
+            order: orderBlock,
+          },
+        });
+
+        if (settings?.store_email) {
+          await tryNotify({
+            event_type: "order_staff_notification",
+            recipient: settings.store_email,
+            order_id: order.id,
+            dedupe_key: `order_staff_notification:${order.id}`,
+            subject: `New TechNest order ${order.order_number}`,
+            content: {
+              heading: "New order received",
+              intro: `${data.contact_name} (${data.contact_email}) placed order ${order.order_number}.`,
+              order: orderBlock,
+            },
+          });
+        }
+      } catch (e) {
+        console.error("order notifications failed", (e as Error).message);
+      }
+    }
+
+    return { ok: true, order };
   });
 

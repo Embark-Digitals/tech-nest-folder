@@ -33,6 +33,10 @@ import { slugify, parseCatalogueRows, type ParsedRow } from "@/lib/import-utils"
 import { CrmPanel } from "@/components/admin/CrmPanel";
 import { TeamPanel } from "@/components/admin/TeamPanel";
 import { ReportsPanel } from "@/components/admin/ReportsPanel";
+import { SupplierImportPanel } from "@/components/admin/SupplierImportPanel";
+import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
+import { useServerFn } from "@tanstack/react-start";
+import { notifyOrderEvent } from "@/lib/email.functions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -85,6 +89,7 @@ function AdminPage() {
           <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
         </TabsList>
@@ -98,7 +103,10 @@ function AdminPage() {
           <CataloguePanel />
         </TabsContent>
         <TabsContent value="import" className="pt-6">
-          <ImportPanel userId={user.id} />
+          <SupplierImportPanel isAdmin={isAdmin} />
+        </TabsContent>
+        <TabsContent value="emails" className="pt-6">
+          <EmailLogPanel isAdmin={isAdmin} />
         </TabsContent>
         <TabsContent value="reports" className="pt-6">
           <ReportsPanel />
@@ -138,6 +146,16 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
     },
   });
 
+  const notify = useServerFn(notifyOrderEvent);
+
+  const STATUS_EMAIL: Record<string, string> = {
+    awaiting_payment: "order_eft_instructions",
+    paid: "order_payment_received",
+    shipped: "order_dispatched",
+    delivered: "order_delivered",
+    cancelled: "order_cancelled",
+  };
+
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.rpc("set_order_status", {
       _order_id: id,
@@ -147,6 +165,8 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
     if (error) return toast.error(error.message);
     toast.success("Order updated");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    // Notification is best-effort — a failure is logged in the Emails tab.
+    void notify({ data: { order_id: id, event: (STATUS_EMAIL[status] ?? "order_status_update") as never } });
   };
 
   const confirmEft = async () => {
@@ -158,6 +178,7 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
     });
     if (error) return toast.error(error.message);
     toast.success("Manual EFT recorded");
+    void notify({ data: { order_id: eftOrder.id, event: "order_payment_received" } });
     setEftOrder(null);
     setEftRef("");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });

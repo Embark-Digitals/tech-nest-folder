@@ -93,6 +93,24 @@ function AuthPage() {
               <Button type="submit" className="w-full" disabled={busy}>
                 Sign in
               </Button>
+              <button
+                type="button"
+                className="w-full text-center text-sm text-muted-foreground underline-offset-2 hover:underline"
+                onClick={async () => {
+                  const email = (document.getElementById("si-email") as HTMLInputElement | null)?.value?.trim();
+                  const valid = z.string().email().safeParse(email ?? "");
+                  if (!valid.success) return toast.error("Enter your email address above first.");
+                  setBusy(true);
+                  await supabase.auth.resetPasswordForEmail(valid.data, {
+                    redirectTo: `${window.location.origin}/auth/reset`,
+                  });
+                  setBusy(false);
+                  // Never reveal whether an account exists for this address.
+                  toast.success("If that email is registered, a password reset link is on its way.");
+                }}
+              >
+                Forgot your password?
+              </button>
             </form>
           </TabsContent>
 
