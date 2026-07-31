@@ -82,8 +82,50 @@ function ProductPage() {
     else toast.success("Saved to wishlist");
   };
 
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const productLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    sku: product.sku,
+    description: product.short_description ?? product.full_description ?? product.name,
+    ...(image ? { image: [image] } : {}),
+    ...(product.brands?.name ? { brand: { "@type": "Brand", name: product.brands.name } } : {}),
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "ZAR",
+      price: price.toFixed(2),
+      availability: buyable
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url: `${origin}/product/${product.slug}`,
+      seller: { "@type": "Organization", name: "TechNest" },
+    },
+  };
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${origin}/` },
+      ...(product.categories
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: product.categories.name,
+              item: `${origin}/category/${product.categories.slug}`,
+            },
+          ]
+        : []),
+      { "@type": "ListItem", position: product.categories ? 3 : 2, name: product.name },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
+      <JsonLd data={productLd} />
+      <JsonLd data={breadcrumbLd} />
+
       <nav className="text-sm text-muted-foreground">
         <Link to="/" className="hover:text-primary">
           Home
