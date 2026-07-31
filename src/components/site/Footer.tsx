@@ -76,9 +76,12 @@ export function Footer() {
             <li className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" /> {settings?.store_email ?? "sales@technest.co.za"}
             </li>
-            <li className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-primary" /> {settings?.store_phone ?? "+27 00 000 0000"}
-            </li>
+            {settings?.store_phone && !/0{3}/.test(settings.store_phone) ? (
+              <li className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-primary" /> {settings.store_phone}
+              </li>
+            ) : null}
+
             <li className="flex items-start gap-2">
               <Truck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <span>{settings?.delivery_note ?? "Delivery within Gauteng. Collection available."}</span>
