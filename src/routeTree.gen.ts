@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ReturnsRouteImport } from './routes/returns'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as DeliveryRouteImport } from './routes/delivery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -33,6 +34,11 @@ const ShopRoute = ShopRouteImport.update({
 const ReturnsRoute = ReturnsRouteImport.update({
   id: '/returns',
   path: '/returns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliveryRoute = DeliveryRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
   '/auth/reset': typeof AuthResetRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
   '/auth/reset': typeof AuthResetRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
   '/auth/reset': typeof AuthResetRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/privacy'
     | '/returns'
     | '/shop'
     | '/auth/reset'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/privacy'
     | '/returns'
     | '/shop'
     | '/auth/reset'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/privacy'
     | '/returns'
     | '/shop'
     | '/auth/reset'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   DeliveryRoute: typeof DeliveryRoute
+  PrivacyRoute: typeof PrivacyRoute
   ReturnsRoute: typeof ReturnsRoute
   ShopRoute: typeof ShopRoute
   CategorySlugRoute: typeof CategorySlugRoute
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: '/returns'
       fullPath: '/returns'
       preLoaderRoute: typeof ReturnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delivery': {
@@ -355,6 +375,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   DeliveryRoute: DeliveryRoute,
+  PrivacyRoute: PrivacyRoute,
   ReturnsRoute: ReturnsRoute,
   ShopRoute: ShopRoute,
   CategorySlugRoute: CategorySlugRoute,
