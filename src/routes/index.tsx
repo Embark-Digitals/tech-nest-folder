@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ShieldCheck, Truck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,9 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      canonicalHead("/").meta,
     ],
+    links: [canonicalHead("/").link],
   }),
   component: Index,
 });

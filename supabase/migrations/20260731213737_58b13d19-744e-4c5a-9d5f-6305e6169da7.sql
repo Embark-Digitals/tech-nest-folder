@@ -1,0 +1,1 @@
+DELETE FROM public.contact_messages WHERE email = 'qa-contact-test@technest.invalid';

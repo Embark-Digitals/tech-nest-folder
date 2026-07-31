@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,7 +34,9 @@ export const Route = createFileRoute("/shop")({
       },
       { property: "og:title", content: "Shop All Tech | TechNest" },
       { property: "og:description", content: "The full TechNest catalogue with live stock and ZAR pricing." },
+      canonicalHead("/shop").meta,
     ],
+    links: [canonicalHead("/shop").link],
   }),
   component: Shop,
 });

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { ContentPage } from "@/components/site/ContentPage";
 
 export const Route = createFileRoute("/privacy")({
@@ -14,7 +15,9 @@ export const Route = createFileRoute("/privacy")({
       { property: "og:description", content: "TechNest POPIA privacy policy and your data rights." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      canonicalHead("/privacy").meta,
     ],
+    links: [canonicalHead("/privacy").link],
   }),
   component: PrivacyPage,
 });

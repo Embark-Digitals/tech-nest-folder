@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { ContentPage } from "@/components/site/ContentPage";
 
 export const Route = createFileRoute("/returns")({
@@ -14,7 +15,9 @@ export const Route = createFileRoute("/returns")({
       { property: "og:description", content: "How to return, exchange or claim warranty on a TechNest order." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      canonicalHead("/returns").meta,
     ],
+    links: [canonicalHead("/returns").link],
   }),
   component: ReturnsPage,
 });

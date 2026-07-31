@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { noindexMeta } from "@/lib/site";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/account")({
       { name: "description", content: "View your TechNest orders, order status and wishlist." },
       { property: "og:title", content: "My Account | TechNest" },
       { property: "og:description", content: "View your TechNest orders and wishlist." },
+      noindexMeta,
     ],
   }),
   component: AccountPage,

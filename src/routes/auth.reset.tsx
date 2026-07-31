@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { noindexMeta } from "@/lib/site";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/auth/reset")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
+      noindexMeta,
     ],
   }),
   component: ResetPasswordPage,

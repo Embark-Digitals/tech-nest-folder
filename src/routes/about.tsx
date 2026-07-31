@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { ContentPage } from "@/components/site/ContentPage";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +19,9 @@ export const Route = createFileRoute("/about")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      canonicalHead("/about").meta,
     ],
+    links: [canonicalHead("/about").link],
   }),
   component: AboutPage,
 });

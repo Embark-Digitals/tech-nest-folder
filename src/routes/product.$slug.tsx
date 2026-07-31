@@ -1,3 +1,4 @@
+import { canonicalHead } from "@/lib/site";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/product/$slug")({
   head: ({ params }) => {
     const name = params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const canonical = canonicalHead(`/product/${params.slug}`);
     return {
       meta: [
         { title: `${name} | TechNest South Africa` },
@@ -29,9 +31,13 @@ export const Route = createFileRoute("/product/$slug")({
         },
         { property: "og:title", content: `${name} | TechNest` },
         { property: "og:description", content: `Buy the ${name} at TechNest — ZAR price incl. VAT.` },
+        { property: "og:type", content: "product" },
+        canonical.meta,
       ],
+      links: [canonical.link],
     };
   },
+
   component: ProductPage,
 });
 

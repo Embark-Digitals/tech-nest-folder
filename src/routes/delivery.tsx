@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { ContentPage } from "@/components/site/ContentPage";
 
 export const Route = createFileRoute("/delivery")({
@@ -14,7 +15,9 @@ export const Route = createFileRoute("/delivery")({
       { property: "og:description", content: "Gauteng delivery zones, fees, lead times and collection." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      canonicalHead("/delivery").meta,
     ],
+    links: [canonicalHead("/delivery").link],
   }),
   component: DeliveryPage,
 });

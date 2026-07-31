@@ -4,10 +4,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoriesQuery, productsQuery } from "@/lib/catalogue";
+import { canonicalHead } from "@/lib/site";
 
 export const Route = createFileRoute("/category/$slug")({
   head: ({ params }) => {
     const name = params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const canonical = canonicalHead(`/category/${params.slug}`);
     return {
       meta: [
         { title: `${name} | TechNest South Africa` },
@@ -17,9 +19,12 @@ export const Route = createFileRoute("/category/$slug")({
         },
         { property: "og:title", content: `${name} | TechNest` },
         { property: "og:description", content: `Shop ${name.toLowerCase()} with ZAR pricing incl. VAT.` },
+        canonical.meta,
       ],
+      links: [canonical.link],
     };
   },
+
   component: CategoryPage,
 });
 

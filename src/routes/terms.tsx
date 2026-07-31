@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { canonicalHead } from "@/lib/site";
 import { ContentPage } from "@/components/site/ContentPage";
 
 export const Route = createFileRoute("/terms")({
@@ -14,7 +15,9 @@ export const Route = createFileRoute("/terms")({
       { property: "og:description", content: "The terms that apply to every TechNest order." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      canonicalHead("/terms").meta,
     ],
+    links: [canonicalHead("/terms").link],
   }),
   component: TermsPage,
 });
