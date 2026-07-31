@@ -89,6 +89,8 @@
   --navy-foreground: oklch(0.98 0 0);
   --cyan: oklch(0.62 0.21 26);
   --cyan-foreground: oklch(0.99 0 0);
+  --neon-blue: oklch(0.65 0.2 240);
+  --neon-blue-foreground: oklch(0.99 0 0);
   --highlight: oklch(0.86 0.17 95);
   --success: oklch(0.6 0.14 152);
   --success-foreground: oklch(0.99 0 0);
@@ -133,6 +135,8 @@
   --navy-foreground: oklch(0.97 0 0);
   --cyan: oklch(0.66 0.2 26);
   --cyan-foreground: oklch(0.14 0.004 250);
+  --neon-blue: oklch(0.7 0.18 240);
+  --neon-blue-foreground: oklch(0.14 0.004 250);
   --highlight: oklch(0.88 0.17 95);
   --success: oklch(0.68 0.15 152);
   --success-foreground: oklch(0.14 0.004 250);
