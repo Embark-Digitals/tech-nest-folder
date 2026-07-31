@@ -155,12 +155,19 @@ function Checkout() {
     if (submitting) return;
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const payload = {
-      ...Object.fromEntries(fd),
-      city,
-      postal_code: postalCode,
-    };
-    const parsed = (method === "collection"
+    const entries = Object.fromEntries(fd);
+    const isCollection = method === "collection";
+    // Collection orders have no delivery address, so the address fields are
+    // dropped entirely rather than submitted as empty strings.
+    const payload = isCollection
+      ? {
+          contact_name: entries["contact_name"],
+          contact_email: entries["contact_email"],
+          contact_phone: entries["contact_phone"],
+          customer_notes: entries["customer_notes"],
+        }
+      : { ...entries, city, postal_code: postalCode };
+    const parsed = (isCollection
       ? schema.partial({ line1: true, city: true, postal_code: true })
       : schema
     ).safeParse(payload);
