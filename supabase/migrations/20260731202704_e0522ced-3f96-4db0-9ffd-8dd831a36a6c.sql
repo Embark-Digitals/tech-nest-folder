@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.quote_delivery(text,text,text,text,jsonb) TO supabase_read_only_user;

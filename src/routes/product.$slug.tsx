@@ -23,7 +23,7 @@ export const Route = createFileRoute("/product/$slug")({
         { title: `${name} | TechNest South Africa` },
         {
           name: "description",
-          content: `Buy the ${name} at TechNest. ZAR price incl. 15% VAT, live stock status and nationwide delivery in South Africa.`,
+          content: `Buy the ${name} at TechNest. ZAR price incl. 15% VAT, live stock status and delivery across Gauteng.`,
         },
         { property: "og:title", content: `${name} | TechNest` },
         { property: "og:description", content: `Buy the ${name} at TechNest — ZAR price incl. VAT.` },
@@ -172,7 +172,7 @@ function ProductPage() {
           <Card className="mt-6 flex items-start gap-3 p-4">
             <Truck className="mt-0.5 h-5 w-5 text-primary" />
             <p className="text-sm text-muted-foreground">
-              Nationwide delivery across South Africa. Delivery is quoted after stock confirmation.
+              Delivery within Gauteng, calculated at checkout from your postal code. Collection available.
             </p>
           </Card>
 

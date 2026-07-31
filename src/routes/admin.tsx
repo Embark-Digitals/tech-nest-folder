@@ -35,6 +35,7 @@ import { TeamPanel } from "@/components/admin/TeamPanel";
 import { ReportsPanel } from "@/components/admin/ReportsPanel";
 import { SupplierImportPanel } from "@/components/admin/SupplierImportPanel";
 import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
+import { ShippingPanel } from "@/components/admin/ShippingPanel";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOrderEvent } from "@/lib/email.functions";
 
@@ -88,6 +89,7 @@ function AdminPage() {
           <TabsTrigger value="crm">CRM</TabsTrigger>
           <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
           <TabsTrigger value="import">Import</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}
@@ -105,6 +107,10 @@ function AdminPage() {
         <TabsContent value="import" className="pt-6">
           <SupplierImportPanel isAdmin={isAdmin} />
         </TabsContent>
+        <TabsContent value="shipping" className="pt-6">
+          <ShippingPanel isAdmin={isAdmin} />
+        </TabsContent>
+
         <TabsContent value="emails" className="pt-6">
           <EmailLogPanel isAdmin={isAdmin} />
         </TabsContent>

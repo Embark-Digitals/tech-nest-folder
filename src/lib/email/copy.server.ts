@@ -98,7 +98,7 @@ export function orderEmailCopy(event: OrderEmailEvent, o: OrderContext): Copy {
       return wrap(
         `TechNest order ${n} has shipped`,
         "Your order is on its way",
-        `Order ${n} has been dispatched for nationwide delivery.`,
+        `Order ${n} has been dispatched for delivery.`,
         o.delivery_note ? [o.delivery_note] : undefined,
       );
     case "order_delivered":

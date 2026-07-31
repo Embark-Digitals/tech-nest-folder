@@ -13,7 +13,7 @@ export const Route = createFileRoute("/category/$slug")({
         { title: `${name} | TechNest South Africa` },
         {
           name: "description",
-          content: `Shop ${name.toLowerCase()} at TechNest. ZAR pricing incl. VAT, live stock status and nationwide South African delivery.`,
+          content: `Shop ${name.toLowerCase()} at TechNest. ZAR pricing incl. VAT, live stock status and Gauteng delivery.`,
         },
         { property: "og:title", content: `${name} | TechNest` },
         { property: "og:description", content: `Shop ${name.toLowerCase()} with ZAR pricing incl. VAT.` },

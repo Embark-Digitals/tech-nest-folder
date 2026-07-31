@@ -34,6 +34,7 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   paid: "Paid",
   processing: "Processing",
   ready_for_dispatch: "Ready for dispatch",
+  ready_for_collection: "Ready for collection",
   shipped: "Shipped",
   delivered: "Delivered",
   cancelled: "Cancelled",

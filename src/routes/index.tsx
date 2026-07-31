@@ -14,12 +14,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery.",
+          "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and delivery across Gauteng.",
       },
       { property: "og:title", content: "TechNest | Buy Laptops, Phones & Gaming Gear in South Africa" },
       {
         property: "og:description",
-        content: "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and nationwide delivery.",
+        content: "Shop laptops, smartphones, audio and gaming tech at TechNest. Transparent ZAR pricing incl. VAT, live stock status and Gauteng delivery.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -55,7 +55,7 @@ function Index() {
             </h1>
             <p className="mt-4 max-w-md text-sm text-muted-foreground">
               Genuine laptops, appliances, audio and gaming gear — live stock status, VAT-inclusive pricing
-              and nationwide delivery.
+              and Gauteng delivery.
             </p>
             <Button
               asChild
@@ -151,7 +151,7 @@ function Index() {
       <section className="grid gap-6 border-t border-border py-12 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { icon: Wallet, title: "ZAR incl. VAT", body: "No surprises at checkout — 15% VAT always included." },
-          { icon: Truck, title: "Nationwide delivery", body: "Delivered anywhere in South Africa." },
+          { icon: Truck, title: "Gauteng delivery", body: "Courier delivery across our active Gauteng zones." },
           { icon: ShieldCheck, title: "Genuine stock", body: "Sourced from authorised distributors." },
           { icon: ArrowRight, title: "Live availability", body: "Stock status shown on every product." },
         ].map((f) => (
