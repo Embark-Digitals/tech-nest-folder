@@ -39,25 +39,36 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="font-display text-xs font-semibold uppercase tracking-[0.14em]">Account</h3>
+          <h3 className="font-display text-xs font-semibold uppercase tracking-[0.14em]">Help</h3>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <li>
+              <Link to="/about" className="hover:text-primary">
+                About TechNest
+              </Link>
+            </li>
+            <li>
+              <Link to="/delivery" className="hover:text-primary">
+                Delivery &amp; collection
+              </Link>
+            </li>
+            <li>
+              <Link to="/faq" className="hover:text-primary">
+                FAQ
+              </Link>
+            </li>
+            <li>
+              <Link to="/returns" className="hover:text-primary">
+                Returns &amp; warranty
+              </Link>
+            </li>
             <li>
               <Link to="/account" className="hover:text-primary">
                 My account
               </Link>
             </li>
-            <li>
-              <Link to="/cart" className="hover:text-primary">
-                Cart
-              </Link>
-            </li>
-            <li>
-              <Link to="/checkout" className="hover:text-primary">
-                Checkout
-              </Link>
-            </li>
           </ul>
         </div>
+
 
         <div>
           <h3 className="font-display text-xs font-semibold uppercase tracking-[0.14em]">Contact</h3>
@@ -76,8 +87,23 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
+        <nav className="mb-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <Link to="/contact" className="hover:text-primary">
+            Contact
+          </Link>
+          <Link to="/privacy" className="hover:text-primary">
+            Privacy policy
+          </Link>
+          <Link to="/terms" className="hover:text-primary">
+            Terms &amp; conditions
+          </Link>
+          <Link to="/returns" className="hover:text-primary">
+            Returns
+          </Link>
+        </nav>
         © {new Date().getFullYear()} TechNest. All prices in South African Rand incl. 15% VAT.
       </div>
+
     </footer>
   );
 }

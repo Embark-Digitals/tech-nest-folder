@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useCart } from "@/lib/cart";
 import { formatZAR, VAT_RATE } from "@/lib/format";
+import { track, itemPayload } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder } from "@/lib/orders.functions";
@@ -98,6 +99,30 @@ function Checkout() {
   const deliveryFee = quote?.eligible ? Number(quote.delivery_fee ?? 0) : 0;
   const total = cart.totalInclVat + deliveryFee;
   const exVat = total / (1 + VAT_RATE);
+
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || cart.lines.length === 0) return;
+    started.current = true;
+    track("begin_checkout", {
+      value: cart.totalInclVat,
+      items: cart.lines.map(itemPayload),
+    });
+  }, [cart.lines.length]);
+
+  useEffect(() => {
+    if (!quote) return;
+    if (quote.eligible) {
+      track("add_shipping_info", {
+        value: total,
+        shipping_tier: quote.zone_name ?? method,
+        shipping: deliveryFee,
+      });
+    } else {
+      track("delivery_unavailable", { reason: quote.reason ?? "unknown", method });
+    }
+  }, [quote?.eligible, quote?.zone_name, quote?.reason, deliveryFee]);
+
   const canSubmit = !!quote?.eligible && !submitting;
 
   if (!loading && !user) {
@@ -147,6 +172,7 @@ function Checkout() {
       return;
     }
     setEnquirySent(true);
+    track("delivery_enquiry", { province, value: cart.totalInclVat });
     toast.success("Delivery enquiry sent — our team will quote you directly. No order was placed.");
   };
 
@@ -155,12 +181,19 @@ function Checkout() {
     if (submitting) return;
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const payload = {
-      ...Object.fromEntries(fd),
-      city,
-      postal_code: postalCode,
-    };
-    const parsed = (method === "collection"
+    const entries = Object.fromEntries(fd);
+    const isCollection = method === "collection";
+    // Collection orders have no delivery address, so the address fields are
+    // dropped entirely rather than submitted as empty strings.
+    const payload = isCollection
+      ? {
+          contact_name: entries["contact_name"],
+          contact_email: entries["contact_email"],
+          contact_phone: entries["contact_phone"],
+          customer_notes: entries["customer_notes"],
+        }
+      : { ...entries, city, postal_code: postalCode };
+    const parsed = (isCollection
       ? schema.partial({ line1: true, city: true, postal_code: true })
       : schema
     ).safeParse(payload);
@@ -217,6 +250,13 @@ function Checkout() {
         return;
       }
 
+      track("purchase", {
+        transaction_id: result.order.order_number,
+        value: Number(result.order.total_incl_vat),
+        tax: Number(result.order.vat_amount ?? 0),
+        shipping: Number(result.order.delivery_fee ?? 0),
+        items: cart.lines.map(itemPayload),
+      });
       cart.clear();
       toast.success(
         `Order ${result.order.order_number} received — ${
@@ -444,6 +484,12 @@ function Checkout() {
               {quote.free_delivery_applied ? " · free delivery threshold reached" : ""}
             </p>
           )}
+          {quote?.eligible && quote.requires_manual_quote && (
+            <p className="mt-2 rounded-md bg-secondary/60 p-2 text-xs text-muted-foreground">
+              Some items need supplier confirmation. We will confirm availability and lead time
+              before any payment is requested.
+            </p>
+          )}
           <Separator className="my-4" />
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total excl. VAT</span>
@@ -453,6 +499,7 @@ function Checkout() {
             <span className="text-muted-foreground">VAT (15%)</span>
             <span>{formatZAR(total - exVat)}</span>
           </div>
+
           <Separator className="my-4" />
           <div className="flex justify-between font-display text-lg font-bold">
             <span>Total</span>

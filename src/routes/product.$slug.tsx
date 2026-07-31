@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Heart, Minus, Plus, ShoppingCart, Truck } from "lucide-react";
@@ -9,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { StockBadge } from "@/components/site/StockBadge";
 import { ProductCard } from "@/components/site/ProductCard";
+import { JsonLd } from "@/components/site/JsonLd";
+import { track, itemPayload } from "@/lib/analytics";
 import { formatZAR, VAT_RATE } from "@/lib/format";
 import { primaryImage, productQuery, productsQuery } from "@/lib/catalogue";
 import { useCart } from "@/lib/cart";
@@ -40,6 +42,22 @@ function ProductPage() {
   const cart = useCart();
   const { user } = useAuth();
   const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    if (!product) return;
+    track("view_item", {
+      value: product.selling_price_incl_vat ?? 0,
+      items: [
+        itemPayload({
+          sku: product.sku,
+          name: product.name,
+          price: product.selling_price_incl_vat ?? 0,
+        }),
+      ],
+    });
+  }, [product?.id]);
+
+
 
   if (isLoading) {
     return (
@@ -82,8 +100,50 @@ function ProductPage() {
     else toast.success("Saved to wishlist");
   };
 
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const productLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    sku: product.sku,
+    description: product.short_description ?? product.full_description ?? product.name,
+    ...(image ? { image: [image] } : {}),
+    ...(product.brands?.name ? { brand: { "@type": "Brand", name: product.brands.name } } : {}),
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "ZAR",
+      price: price.toFixed(2),
+      availability: buyable
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url: `${origin}/product/${product.slug}`,
+      seller: { "@type": "Organization", name: "TechNest" },
+    },
+  };
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${origin}/` },
+      ...(product.categories
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: product.categories.name,
+              item: `${origin}/category/${product.categories.slug}`,
+            },
+          ]
+        : []),
+      { "@type": "ListItem", position: product.categories ? 3 : 2, name: product.name },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
+      <JsonLd data={productLd} />
+      <JsonLd data={breadcrumbLd} />
+
       <nav className="text-sm text-muted-foreground">
         <Link to="/" className="hover:text-primary">
           Home
@@ -158,7 +218,12 @@ function ProductPage() {
                   },
                   qty,
                 );
+                track("add_to_cart", {
+                  value: price * qty,
+                  items: [itemPayload({ sku: product.sku, name: product.name, price, quantity: qty })],
+                });
                 toast.success(`${product.name} added to cart`);
+
               }}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />

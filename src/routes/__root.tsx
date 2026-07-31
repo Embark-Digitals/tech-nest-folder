@@ -110,7 +110,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "OnlineStore",
+          name: "TechNest",
+          description:
+            "South African technology retailer. Televisions, appliances and audio visual tech with transparent ZAR pricing incl. 15% VAT and Gauteng delivery.",
+          areaServed: { "@type": "AdministrativeArea", name: "Gauteng, South Africa" },
+          currenciesAccepted: "ZAR",
+          address: { "@type": "PostalAddress", addressCountry: "ZA", addressRegion: "Gauteng" },
+        }),
+      },
+    ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
