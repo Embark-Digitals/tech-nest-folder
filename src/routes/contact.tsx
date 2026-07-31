@@ -29,7 +29,8 @@ export const Route = createFileRoute("/contact")({
 function ContactPage() {
   const { data: settings } = useQuery(siteSettingsQuery);
   const email = settings?.store_email ?? "sales@technest.co.za";
-  const phone = settings?.store_phone ?? "+27 00 000 0000";
+  const rawPhone = settings?.store_phone ?? "";
+  const phone = rawPhone && !/0{3}/.test(rawPhone) ? rawPhone : null;
   const whatsapp = settings?.whatsapp_number;
 
   return (
@@ -46,16 +47,30 @@ function ContactPage() {
             {email}
           </a>
         </div>
-        <div className="rounded-lg border border-border p-4">
-          <h3 className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-primary" /> Phone
-          </h3>
-          <a href={`tel:${phone.replace(/\s/g, "")}`} className="mt-2 block text-foreground hover:text-primary">
-            {phone}
-          </a>
-          {whatsapp && <p className="mt-1">WhatsApp: {whatsapp}</p>}
-        </div>
+        {phone || whatsapp ? (
+          <div className="rounded-lg border border-border p-4">
+            <h3 className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-primary" /> Phone
+            </h3>
+            {phone && (
+              <a href={`tel:${phone.replace(/\s/g, "")}`} className="mt-2 block text-foreground hover:text-primary">
+                {phone}
+              </a>
+            )}
+            {whatsapp && <p className="mt-1">WhatsApp: {whatsapp}</p>}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border p-4">
+            <h3 className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" /> Message us
+            </h3>
+            <p className="mt-2">
+              Use the form below — it reaches the same inbox and is the fastest way to get a written quote.
+            </p>
+          </div>
+        )}
       </section>
+
       <section>
         <h2>Send us a message</h2>
         <p>
