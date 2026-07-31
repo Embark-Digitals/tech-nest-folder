@@ -158,6 +158,67 @@ export type Database = {
         }
         Relationships: []
       }
+      catalogue_change_log: {
+        Row: {
+          action: string
+          applied_at: string
+          applied_by: string | null
+          field: string | null
+          id: string
+          import_id: string | null
+          new_value: Json | null
+          old_value: Json | null
+          product_id: string | null
+          row_id: string | null
+        }
+        Insert: {
+          action: string
+          applied_at?: string
+          applied_by?: string | null
+          field?: string | null
+          id?: string
+          import_id?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          product_id?: string | null
+          row_id?: string | null
+        }
+        Update: {
+          action?: string
+          applied_at?: string
+          applied_by?: string | null
+          field?: string | null
+          id?: string
+          import_id?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          product_id?: string | null
+          row_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_change_log_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_change_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_change_log_row_id_fkey"
+            columns: ["row_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_import_rows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogue_import_errors: {
         Row: {
           created_at: string
@@ -199,45 +260,201 @@ export type Database = {
           },
         ]
       }
+      catalogue_import_rows: {
+        Row: {
+          ai_assisted: boolean
+          ai_fields: Json
+          change_type: Database["public"]["Enums"]["import_change_type"]
+          computed_price_incl_vat: number | null
+          confidence_band: Database["public"]["Enums"]["import_confidence"]
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: Database["public"]["Enums"]["import_decision"]
+          id: string
+          import_id: string
+          match_confidence: number | null
+          match_method: string | null
+          match_reason: string | null
+          matched_product_id: string | null
+          model_number: string | null
+          normalised: Json
+          part_number: string | null
+          product_name: string | null
+          proposed_changes: Json
+          raw_row: Json
+          review_reason: string | null
+          source_page: number | null
+          source_row_number: number | null
+          source_section: string | null
+          source_worksheet: string | null
+          supplier_sku: string | null
+          updated_at: string
+          validation_error: string | null
+        }
+        Insert: {
+          ai_assisted?: boolean
+          ai_fields?: Json
+          change_type?: Database["public"]["Enums"]["import_change_type"]
+          computed_price_incl_vat?: number | null
+          confidence_band?: Database["public"]["Enums"]["import_confidence"]
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: Database["public"]["Enums"]["import_decision"]
+          id?: string
+          import_id: string
+          match_confidence?: number | null
+          match_method?: string | null
+          match_reason?: string | null
+          matched_product_id?: string | null
+          model_number?: string | null
+          normalised?: Json
+          part_number?: string | null
+          product_name?: string | null
+          proposed_changes?: Json
+          raw_row?: Json
+          review_reason?: string | null
+          source_page?: number | null
+          source_row_number?: number | null
+          source_section?: string | null
+          source_worksheet?: string | null
+          supplier_sku?: string | null
+          updated_at?: string
+          validation_error?: string | null
+        }
+        Update: {
+          ai_assisted?: boolean
+          ai_fields?: Json
+          change_type?: Database["public"]["Enums"]["import_change_type"]
+          computed_price_incl_vat?: number | null
+          confidence_band?: Database["public"]["Enums"]["import_confidence"]
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: Database["public"]["Enums"]["import_decision"]
+          id?: string
+          import_id?: string
+          match_confidence?: number | null
+          match_method?: string | null
+          match_reason?: string | null
+          matched_product_id?: string | null
+          model_number?: string | null
+          normalised?: Json
+          part_number?: string | null
+          product_name?: string | null
+          proposed_changes?: Json
+          raw_row?: Json
+          review_reason?: string | null
+          source_page?: number | null
+          source_row_number?: number | null
+          source_section?: string | null
+          source_worksheet?: string | null
+          supplier_sku?: string | null
+          updated_at?: string
+          validation_error?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_import_rows_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_import_rows_matched_product_id_fkey"
+            columns: ["matched_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogue_imports: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
+          catalogue_date: string | null
           created_at: string
           created_count: number
           error_count: number
+          extraction_method: string | null
+          file_checksum: string | null
           file_name: string
           id: string
           imported_by: string | null
+          is_test: boolean
+          original_filename: string | null
+          parser_version: string | null
+          pricing_snapshot: Json | null
+          rejected_count: number
+          review_count: number
+          rows_examined: number
           skipped_count: number
           status: Database["public"]["Enums"]["import_status"]
+          storage_path: string | null
           summary: Json | null
+          supplier: string | null
           total_rows: number
           updated_count: number
+          warnings: Json
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          catalogue_date?: string | null
           created_at?: string
           created_count?: number
           error_count?: number
+          extraction_method?: string | null
+          file_checksum?: string | null
           file_name: string
           id?: string
           imported_by?: string | null
+          is_test?: boolean
+          original_filename?: string | null
+          parser_version?: string | null
+          pricing_snapshot?: Json | null
+          rejected_count?: number
+          review_count?: number
+          rows_examined?: number
           skipped_count?: number
           status?: Database["public"]["Enums"]["import_status"]
+          storage_path?: string | null
           summary?: Json | null
+          supplier?: string | null
           total_rows?: number
           updated_count?: number
+          warnings?: Json
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          catalogue_date?: string | null
           created_at?: string
           created_count?: number
           error_count?: number
+          extraction_method?: string | null
+          file_checksum?: string | null
           file_name?: string
           id?: string
           imported_by?: string | null
+          is_test?: boolean
+          original_filename?: string | null
+          parser_version?: string | null
+          pricing_snapshot?: Json | null
+          rejected_count?: number
+          review_count?: number
+          rows_examined?: number
           skipped_count?: number
           status?: Database["public"]["Enums"]["import_status"]
+          storage_path?: string | null
           summary?: Json | null
+          supplier?: string | null
           total_rows?: number
           updated_count?: number
+          warnings?: Json
         }
         Relationships: []
       }
@@ -382,6 +599,65 @@ export type Database = {
           },
           {
             foreignKeyName: "crm_tasks_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          attempted_at: string | null
+          created_at: string
+          dedupe_key: string
+          event_type: string
+          failure_reason: string | null
+          id: string
+          is_test: boolean
+          order_id: string | null
+          payload: Json
+          provider_message_id: string | null
+          recipient: string
+          retry_count: number
+          status: Database["public"]["Enums"]["email_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          created_at?: string
+          dedupe_key: string
+          event_type: string
+          failure_reason?: string | null
+          id?: string
+          is_test?: boolean
+          order_id?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient: string
+          retry_count?: number
+          status?: Database["public"]["Enums"]["email_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempted_at?: string | null
+          created_at?: string
+          dedupe_key?: string
+          event_type?: string
+          failure_reason?: string | null
+          id?: string
+          is_test?: boolean
+          order_id?: string | null
+          payload?: Json
+          provider_message_id?: string | null
+          recipient?: string
+          retry_count?: number
+          status?: Database["public"]["Enums"]["email_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -713,8 +989,11 @@ export type Database = {
         Row: {
           brand_id: string | null
           brand_review_required: boolean
+          brand_verified: boolean
           capacity: string | null
+          catalogue_review_reason: string | null
           category_id: string | null
+          category_verified: boolean
           colour: string | null
           created_at: string
           dealer_price_ex_vat: number | null
@@ -730,14 +1009,17 @@ export type Database = {
           is_new_arrival: boolean
           is_promotional: boolean
           is_published: boolean
+          last_seen_import_id: string | null
           low_stock_threshold: number
           manual_price_override: number | null
           markup_amount: number | null
           markup_rate: number
+          model_number: string | null
           name: string
           override_at: string | null
           override_by: string | null
           override_reason: string | null
+          part_number: string | null
           previous_price_incl_vat: number | null
           pricing_review_required: boolean
           promotional_price_ex_vat: number | null
@@ -761,6 +1043,7 @@ export type Database = {
           subcategory_id: string | null
           supplier_availability: Database["public"]["Enums"]["supplier_availability"]
           supplier_availability_note: string | null
+          supplier_sku: string | null
           updated_at: string
           vat_amount: number | null
           vat_rate: number
@@ -768,8 +1051,11 @@ export type Database = {
         Insert: {
           brand_id?: string | null
           brand_review_required?: boolean
+          brand_verified?: boolean
           capacity?: string | null
+          catalogue_review_reason?: string | null
           category_id?: string | null
+          category_verified?: boolean
           colour?: string | null
           created_at?: string
           dealer_price_ex_vat?: number | null
@@ -785,14 +1071,17 @@ export type Database = {
           is_new_arrival?: boolean
           is_promotional?: boolean
           is_published?: boolean
+          last_seen_import_id?: string | null
           low_stock_threshold?: number
           manual_price_override?: number | null
           markup_amount?: number | null
           markup_rate?: number
+          model_number?: string | null
           name: string
           override_at?: string | null
           override_by?: string | null
           override_reason?: string | null
+          part_number?: string | null
           previous_price_incl_vat?: number | null
           pricing_review_required?: boolean
           promotional_price_ex_vat?: number | null
@@ -816,6 +1105,7 @@ export type Database = {
           subcategory_id?: string | null
           supplier_availability?: Database["public"]["Enums"]["supplier_availability"]
           supplier_availability_note?: string | null
+          supplier_sku?: string | null
           updated_at?: string
           vat_amount?: number | null
           vat_rate?: number
@@ -823,8 +1113,11 @@ export type Database = {
         Update: {
           brand_id?: string | null
           brand_review_required?: boolean
+          brand_verified?: boolean
           capacity?: string | null
+          catalogue_review_reason?: string | null
           category_id?: string | null
+          category_verified?: boolean
           colour?: string | null
           created_at?: string
           dealer_price_ex_vat?: number | null
@@ -840,14 +1133,17 @@ export type Database = {
           is_new_arrival?: boolean
           is_promotional?: boolean
           is_published?: boolean
+          last_seen_import_id?: string | null
           low_stock_threshold?: number
           manual_price_override?: number | null
           markup_amount?: number | null
           markup_rate?: number
+          model_number?: string | null
           name?: string
           override_at?: string | null
           override_by?: string | null
           override_reason?: string | null
+          part_number?: string | null
           previous_price_incl_vat?: number | null
           pricing_review_required?: boolean
           promotional_price_ex_vat?: number | null
@@ -871,6 +1167,7 @@ export type Database = {
           subcategory_id?: string | null
           supplier_availability?: Database["public"]["Enums"]["supplier_availability"]
           supplier_availability_note?: string | null
+          supplier_sku?: string | null
           updated_at?: string
           vat_amount?: number | null
           vat_rate?: number
@@ -1021,6 +1318,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_catalogue_import: { Args: { _import_id: string }; Returns: Json }
       confirm_manual_eft: {
         Args: {
           _amount_incl_vat: number
@@ -1028,6 +1326,10 @@ export type Database = {
           _payment_reference: string
         }
         Returns: Json
+      }
+      flag_absent_products: {
+        Args: { _import_id: string; _supplier: string }
+        Returns: number
       }
       has_role: {
         Args: {
@@ -1071,6 +1373,7 @@ export type Database = {
         Returns: Json
       }
       release_order_stock: { Args: { _order_id: string }; Returns: undefined }
+      rollback_catalogue_import: { Args: { _import_id: string }; Returns: Json }
       set_order_status: {
         Args: {
           _note?: string
@@ -1089,6 +1392,29 @@ export type Database = {
         | "customer"
       checkout_mode: "live_payment" | "manual_eft" | "request_order"
       crm_task_status: "open" | "in_progress" | "done" | "cancelled"
+      email_status:
+        | "pending"
+        | "sent"
+        | "failed"
+        | "skipped_duplicate"
+        | "suppressed"
+      import_change_type:
+        | "new"
+        | "update"
+        | "unchanged"
+        | "missing"
+        | "discontinued"
+        | "ambiguous"
+        | "error"
+        | "ignored"
+      import_confidence: "high" | "medium" | "low" | "manual_review"
+      import_decision:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "kept_existing"
+        | "applied"
+        | "failed"
       import_status:
         | "pending"
         | "previewing"
@@ -1272,6 +1598,32 @@ export const Constants = {
       ],
       checkout_mode: ["live_payment", "manual_eft", "request_order"],
       crm_task_status: ["open", "in_progress", "done", "cancelled"],
+      email_status: [
+        "pending",
+        "sent",
+        "failed",
+        "skipped_duplicate",
+        "suppressed",
+      ],
+      import_change_type: [
+        "new",
+        "update",
+        "unchanged",
+        "missing",
+        "discontinued",
+        "ambiguous",
+        "error",
+        "ignored",
+      ],
+      import_confidence: ["high", "medium", "low", "manual_review"],
+      import_decision: [
+        "pending",
+        "approved",
+        "rejected",
+        "kept_existing",
+        "applied",
+        "failed",
+      ],
       import_status: [
         "pending",
         "previewing",
