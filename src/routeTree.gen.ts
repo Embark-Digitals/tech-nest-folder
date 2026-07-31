@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as DeliveryRouteImport } from './routes/delivery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -27,6 +28,11 @@ import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/publi
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReturnsRoute = ReturnsRouteImport.update({
+  id: '/returns',
+  path: '/returns',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliveryRoute = DeliveryRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/returns'
     | '/shop'
     | '/auth/reset'
     | '/category/$slug'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/returns'
     | '/shop'
     | '/auth/reset'
     | '/category/$slug'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/returns'
     | '/shop'
     | '/auth/reset'
     | '/category/$slug'
@@ -206,6 +218,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   DeliveryRoute: typeof DeliveryRoute
+  ReturnsRoute: typeof ReturnsRoute
   ShopRoute: typeof ShopRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/returns': {
+      id: '/returns'
+      path: '/returns'
+      fullPath: '/returns'
+      preLoaderRoute: typeof ReturnsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delivery': {
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   DeliveryRoute: DeliveryRoute,
+  ReturnsRoute: ReturnsRoute,
   ShopRoute: ShopRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
