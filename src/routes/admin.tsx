@@ -290,21 +290,25 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
 
 type CatalogueFilter =
   | "all"
+  | "needs_attention"
   | "published"
   | "draft"
   | "missing_price"
   | "review"
   | "override"
-  | "missing_image";
+  | "missing_image"
+  | "missing_brand";
 
 const CATALOGUE_FILTERS: { value: CatalogueFilter; label: string }[] = [
   { value: "all", label: "All products" },
+  { value: "needs_attention", label: "Needs attention" },
   { value: "published", label: "Published" },
   { value: "draft", label: "Drafts" },
   { value: "missing_price", label: "Missing price" },
   { value: "review", label: "Pricing review required" },
   { value: "override", label: "Manual override" },
   { value: "missing_image", label: "Image required" },
+  { value: "missing_brand", label: "Brand review" },
 ];
 
 function CataloguePanel() {
@@ -320,7 +324,7 @@ function CataloguePanel() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, sku, name, stock_status, promotional_price_ex_vat, selling_price_incl_vat, manual_price_override, is_published, pricing_review_required, product_images(id)",
+          "id, sku, name, stock_status, promotional_price_ex_vat, selling_price_incl_vat, manual_price_override, is_published, pricing_review_required, brand_id, brand_review_required, product_images(id)",
         )
         .order("name")
         .limit(500);
@@ -332,19 +336,27 @@ function CataloguePanel() {
   const products = (data ?? []).filter((p) => {
     const q = search.trim().toLowerCase();
     if (q && !`${p.sku} ${p.name}`.toLowerCase().includes(q)) return false;
+    const noImage = (p.product_images ?? []).length === 0;
+    const noBrand = !p.brand_id || p.brand_review_required;
+    const noPrice = !p.promotional_price_ex_vat || !p.selling_price_incl_vat;
     switch (filter) {
+      case "needs_attention":
+        return noImage || noBrand || noPrice || p.pricing_review_required;
       case "published":
         return p.is_published;
       case "draft":
         return !p.is_published;
       case "missing_price":
-        return !p.promotional_price_ex_vat || !p.selling_price_incl_vat;
+        return noPrice;
       case "review":
         return p.pricing_review_required;
       case "override":
         return p.manual_price_override !== null;
       case "missing_image":
-        return (p.product_images ?? []).length === 0;
+        return noImage;
+      case "missing_brand":
+        return noBrand;
+
       default:
         return true;
     }
