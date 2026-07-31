@@ -43,6 +43,22 @@ function ProductPage() {
   const { user } = useAuth();
   const [qty, setQty] = useState(1);
 
+  useEffect(() => {
+    if (!product) return;
+    track("view_item", {
+      value: product.selling_price_incl_vat ?? 0,
+      items: [
+        itemPayload({
+          sku: product.sku,
+          name: product.name,
+          price: product.selling_price_incl_vat ?? 0,
+        }),
+      ],
+    });
+  }, [product?.id]);
+
+
+
   if (isLoading) {
     return (
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 lg:grid-cols-2">
