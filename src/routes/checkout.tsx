@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useCart } from "@/lib/cart";
 import { formatZAR, VAT_RATE } from "@/lib/format";
+import { track, itemPayload } from "@/lib/analytics";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { placeOrder } from "@/lib/orders.functions";
