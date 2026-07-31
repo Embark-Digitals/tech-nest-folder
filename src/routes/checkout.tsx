@@ -98,6 +98,30 @@ function Checkout() {
   const deliveryFee = quote?.eligible ? Number(quote.delivery_fee ?? 0) : 0;
   const total = cart.totalInclVat + deliveryFee;
   const exVat = total / (1 + VAT_RATE);
+
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || cart.lines.length === 0) return;
+    started.current = true;
+    track("begin_checkout", {
+      value: cart.totalInclVat,
+      items: cart.lines.map(itemPayload),
+    });
+  }, [cart.lines.length]);
+
+  useEffect(() => {
+    if (!quote) return;
+    if (quote.eligible) {
+      track("add_shipping_info", {
+        value: total,
+        shipping_tier: quote.zone_name ?? method,
+        shipping: deliveryFee,
+      });
+    } else {
+      track("delivery_unavailable", { reason: quote.reason ?? "unknown", method });
+    }
+  }, [quote?.eligible, quote?.zone_name, quote?.reason, deliveryFee]);
+
   const canSubmit = !!quote?.eligible && !submitting;
 
   if (!loading && !user) {
