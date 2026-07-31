@@ -106,6 +106,10 @@ function AdminPage() {
         <TabsContent value="import" className="pt-6">
           <SupplierImportPanel isAdmin={isAdmin} />
         </TabsContent>
+        <TabsContent value="shipping" className="pt-6">
+          <ShippingPanel isAdmin={isAdmin} />
+        </TabsContent>
+
         <TabsContent value="emails" className="pt-6">
           <EmailLogPanel isAdmin={isAdmin} />
         </TabsContent>
