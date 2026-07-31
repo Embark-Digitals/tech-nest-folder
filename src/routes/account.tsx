@@ -114,6 +114,21 @@ function AccountPage() {
                 </li>
               ))}
             </ul>
+            <Separator className="my-4" />
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p>
+                {o.delivery_method === "collection"
+                  ? `Collection${o.delivery_estimate ? ` · ${o.delivery_estimate}` : ""}`
+                  : `Delivery${o.delivery_zone_name ? ` · ${o.delivery_zone_name}` : ""}${
+                      o.delivery_estimate ? ` · ${o.delivery_estimate}` : ""
+                    }`}
+              </p>
+              <p>
+                {o.delivery_method === "collection" || Number(o.delivery_fee) === 0
+                  ? "No delivery fee"
+                  : `Delivery fee ${formatZAR(Number(o.delivery_fee))}`}
+              </p>
+            </div>
             <p className="mt-4 font-display font-bold">{formatZAR(Number(o.total_incl_vat))}</p>
           </Card>
         ))}
