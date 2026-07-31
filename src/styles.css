@@ -40,6 +40,8 @@
   --color-navy-foreground: var(--navy-foreground);
   --color-cyan: var(--cyan);
   --color-cyan-foreground: var(--cyan-foreground);
+  --color-neon-blue: var(--neon-blue);
+  --color-neon-blue-foreground: var(--neon-blue-foreground);
   --color-highlight: var(--highlight);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
