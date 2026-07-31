@@ -229,7 +229,16 @@ function extractSheets(wb: XLSX.WorkBook, result: ExtractionResult) {
         return push({ ignored_as: "section" });
       }
 
-      const at = (f: string) => (columns![f] === undefined ? "" : (cells[columns![f]] ?? ""));
+      // Some supplier rows sit one column to the right of the header. Probe an
+      // offset of 0 then 1 (the approved TechNest shift detector) before
+      // treating the row as a heading.
+      const probe = (off: number) => (f: string) =>
+        columns![f] === undefined ? "" : (cells[columns![f] + off] ?? "");
+      let at = probe(0);
+      if (!(at("supplier_sku") && at("product_name"))) {
+        const shifted = probe(1);
+        if (shifted("supplier_sku") && shifted("product_name")) at = shifted;
+      }
       const values = Object.keys(columns).map((f) => at(f));
 
       const sku = at("supplier_sku");
