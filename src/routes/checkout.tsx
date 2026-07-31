@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -13,7 +13,8 @@ import { useCart } from "@/lib/cart";
 import { formatZAR, VAT_RATE } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 import { siteSettingsQuery } from "@/lib/catalogue";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { placeOrder } from "@/lib/orders.functions";
 
 const schema = z.object({
   contact_name: z.string().trim().min(2, "Enter your full name").max(100),
@@ -46,6 +47,8 @@ function Checkout() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const submissionKey = useRef<string | null>(null);
+  const submitOrder = useServerFn(placeOrder);
 
   const exVat = cart.totalInclVat / (1 + VAT_RATE);
 
@@ -76,6 +79,7 @@ function Checkout() {
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
     const form = new FormData(e.currentTarget);
     const parsed = schema.safeParse(Object.fromEntries(form));
     if (!parsed.success) {
@@ -88,59 +92,52 @@ function Checkout() {
     setSubmitting(true);
     const v = parsed.data;
 
-    const { data: order, error } = await supabase
-      .from("orders")
-      .insert({
-        user_id: user!.id,
-        contact_name: v.contact_name,
-        contact_email: v.contact_email,
-        contact_phone: v.contact_phone,
-        delivery_address: {
-          line1: v.line1,
-          suburb: v.suburb ?? null,
-          city: v.city,
-          province: v.province,
-          postal_code: v.postal_code,
-          country: "South Africa",
-        },
-        delivery_method: "courier",
-        subtotal_incl_vat: Number(cart.totalInclVat.toFixed(2)),
-        vat_amount: Number((cart.totalInclVat - exVat).toFixed(2)),
-        total_incl_vat: Number(cart.totalInclVat.toFixed(2)),
-        payment_method: settings?.checkout_mode === "manual_eft" ? "eft" : "request",
-        customer_notes: v.customer_notes ?? null,
-        status: "new",
-      })
-      .select("id, order_number")
-      .single();
+    // Stable per-attempt key: refreshing or double-clicking cannot create a
+    // second order for the same cart submission.
+    if (!submissionKey.current) {
+      submissionKey.current =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `sk-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
 
-    if (error || !order) {
+    try {
+      // Only ids + quantities are sent. All pricing is computed server-side.
+      const result = await submitOrder({
+        data: {
+          items: cart.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity })),
+          contact_name: v.contact_name,
+          contact_email: v.contact_email,
+          contact_phone: v.contact_phone,
+          delivery_method: "courier" as const,
+          delivery_address: {
+            line1: v.line1,
+            suburb: v.suburb ?? null,
+            city: v.city,
+            province: v.province,
+            postal_code: v.postal_code,
+          },
+          customer_notes: v.customer_notes ?? null,
+          idempotency_key: submissionKey.current,
+        },
+      });
+
+      if (!result.ok) {
+        setSubmitting(false);
+        toast.error(result.error || "We couldn't place your order. Please try again.");
+        return;
+      }
+
+      cart.clear();
+      toast.success(
+        `Order ${result.order.order_number} received — total ${formatZAR(Number(result.order.total_incl_vat))}`,
+      );
+      navigate({ to: "/account" });
+    } catch (err) {
+      console.error(err);
       setSubmitting(false);
       toast.error("We couldn't place your order. Please try again.");
-      return;
     }
-
-    const { error: itemsError } = await supabase.from("order_items").insert(
-      cart.lines.map((l) => ({
-        order_id: order.id,
-        product_id: l.productId,
-        sku: l.sku,
-        name: l.name,
-        quantity: l.quantity,
-        unit_price_incl_vat: l.price,
-        line_total_incl_vat: Number((l.price * l.quantity).toFixed(2)),
-      })),
-    );
-
-    setSubmitting(false);
-    if (itemsError) {
-      toast.error("Order created but items failed to save. Our team will be in touch.");
-      return;
-    }
-
-    cart.clear();
-    toast.success(`Order ${order.order_number} received`);
-    navigate({ to: "/account" });
   };
 
   const field = (name: string, label: string, extra?: Partial<React.ComponentProps<typeof Input>>) => (
@@ -216,7 +213,8 @@ function Checkout() {
             {submitting ? "Placing order…" : "Place order"}
           </Button>
           <p className="mt-3 text-xs text-muted-foreground">
-            Our team confirms stock and delivery cost before payment is requested.
+            Prices are re-checked against our live catalogue when the order is placed. Our team confirms
+            stock and delivery cost before payment is requested.
           </p>
         </Card>
       </div>
