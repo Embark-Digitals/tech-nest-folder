@@ -1,0 +1,12 @@
+import { createClient } from "@supabase/supabase-js";
+const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+const email = "phase3-admin@technest.test";
+const password = "Phase3-Test-Pass!2026";
+const { data: existing } = await db.auth.admin.listUsers();
+const found = existing.users.find(u => u.email === email);
+if (found) await db.auth.admin.deleteUser(found.id);
+const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true });
+if (error) throw error;
+await db.from("user_roles").insert({ user_id: data.user!.id, role: "admin" });
+await db.from("profiles").upsert({ id: data.user!.id, email, full_name: "Phase 3 Test Admin" });
+console.log("admin ready", data.user!.id);
