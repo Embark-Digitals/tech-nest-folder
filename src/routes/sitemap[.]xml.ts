@@ -17,7 +17,7 @@ const STATIC: { path: string; priority: string; changefreq: string }[] = [
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export const Route = createFileRoute("/sitemap[.]xml")({
+export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async ({ request }) => {

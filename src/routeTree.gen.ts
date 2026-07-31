@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -31,6 +32,11 @@ import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/publi
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopRoute = ShopRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/returns'
     | '/shop'
+    | '/sitemap.xml'
     | '/terms'
     | '/auth/reset'
     | '/category/$slug'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/returns'
     | '/shop'
+    | '/sitemap.xml'
     | '/terms'
     | '/auth/reset'
     | '/category/$slug'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/returns'
     | '/shop'
+    | '/sitemap.xml'
     | '/terms'
     | '/auth/reset'
     | '/category/$slug'
@@ -258,6 +270,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ReturnsRoute: typeof ReturnsRoute
   ShopRoute: typeof ShopRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shop': {
@@ -419,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ReturnsRoute: ReturnsRoute,
   ShopRoute: ShopRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
