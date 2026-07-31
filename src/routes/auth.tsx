@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { appPath, publicAppUrl } from "@/lib/site-url";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -52,7 +53,7 @@ function AuthPage() {
     const { data, error } = await supabase.auth.signUp({
       ...parsed.data,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: publicAppUrl(),
         data: { full_name: form.full_name ?? "" },
       },
     });
@@ -102,7 +103,7 @@ function AuthPage() {
                   if (!valid.success) return toast.error("Enter your email address above first.");
                   setBusy(true);
                   await supabase.auth.resetPasswordForEmail(valid.data, {
-                    redirectTo: `${window.location.origin}/auth/reset`,
+                    redirectTo: appPath("/auth/reset"),
                   });
                   setBusy(false);
                   // Never reveal whether an account exists for this address.

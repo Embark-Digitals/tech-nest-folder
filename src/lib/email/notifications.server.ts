@@ -37,13 +37,12 @@ export type NotificationInput = {
 type SendOutcome = { status: "sent" | "failed" | "skipped_duplicate"; message_id?: string; reason?: string };
 
 async function deliver(input: NotificationInput): Promise<SendOutcome> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  const senderDomain = process.env["SENDER_DOMAIN"] ?? process.env["LOVABLE_EMAIL_SENDER_DOMAIN"];
-  if (!apiKey || !senderDomain) {
+  const { getEmailConfig } = await import("@/lib/email/config.server");
+  const cfg = getEmailConfig();
+  if (!cfg.ready) {
     return {
       status: "failed",
-      reason:
-        "No verified sender domain is configured yet. The notification is stored and can be retried once the TechNest email domain is verified.",
+      reason: `Email sending is not configured yet (missing: ${cfg.missing.join(", ")}). The notification is stored and can be retried once the TechNest sender domain is verified.`,
     };
   }
 
@@ -52,12 +51,12 @@ async function deliver(input: NotificationInput): Promise<SendOutcome> {
     const html = await render(createElement(TechNestEmail, input.content));
     const result: any = await sendLovableEmail(
       {
-        from: `TechNest <orders@${senderDomain}>`,
+        from: `${cfg.fromName} <${cfg.fromAddress}>`,
         to: input.recipient,
         subject: input.subject,
         html,
       } as any,
-      { apiKey, idempotencyKey: input.dedupe_key },
+      { apiKey: cfg.apiKey!, idempotencyKey: input.dedupe_key },
     );
     if (result?.sent === false) return { status: "failed", reason: result.reason ?? "recipient_suppressed" };
     return { status: "sent", message_id: result?.messageId ?? result?.id ?? undefined };
