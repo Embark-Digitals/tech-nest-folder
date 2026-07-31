@@ -1,6 +1,17 @@
-// @vitest-environment jsdom
+// Runs in the default node environment with a minimal window stub — the module
+// only touches window.dataLayer, window.gtag and window.localStorage.
 import { describe, expect, it, beforeEach } from "vitest";
-import { track, trackOnce } from "@/lib/analytics";
+const store = new Map<string, string>();
+(globalThis as any).window = {
+  dataLayer: [] as unknown[],
+  localStorage: {
+    clear: () => store.clear(),
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+  },
+};
+
+const { track, trackOnce } = await import("@/lib/analytics");
 
 describe("analytics conversion dedupe", () => {
   beforeEach(() => {
