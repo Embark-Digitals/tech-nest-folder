@@ -172,6 +172,7 @@ function Checkout() {
       return;
     }
     setEnquirySent(true);
+    track("delivery_enquiry", { province, value: cart.totalInclVat });
     toast.success("Delivery enquiry sent — our team will quote you directly. No order was placed.");
   };
 
