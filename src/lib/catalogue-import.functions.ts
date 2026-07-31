@@ -191,6 +191,14 @@ export const createSupplierImport = createServerFn({ method: "POST" })
             dealer_price_ex_vat: r.dealer_price_ex_vat,
             promotional_price_ex_vat: r.promotional_price_ex_vat,
           },
+          proposed_changes: {},
+          ai_fields: {},
+          matched_product_id: null as string | null,
+          match_method: null as string | null,
+          match_reason: null as string | null,
+          match_confidence: null as number | null,
+          validation_error: null as string | null,
+          review_reason: null as string | null,
           computed_price_incl_vat: computeSellingPrice(r.promotional_price_ex_vat ?? r.dealer_price_ex_vat, pricing as any),
         };
 
