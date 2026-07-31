@@ -32,7 +32,9 @@ function AccountPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, status, total_incl_vat, created_at, order_items(name, quantity)")
+        .select(
+          "id, order_number, status, total_incl_vat, delivery_fee, delivery_method, delivery_zone_name, delivery_estimate, created_at, order_items(name, quantity)",
+        )
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
