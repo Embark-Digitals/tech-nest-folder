@@ -111,10 +111,10 @@ export const placeOrder = createServerFn({ method: "POST" })
           },
         });
 
-        if (settings?.store_email) {
+        if (staffRecipient) {
           await tryNotify({
             event_type: "order_staff_notification",
-            recipient: settings.store_email,
+            recipient: staffRecipient,
             order_id: order.id,
             dedupe_key: `order_staff_notification:${order.id}`,
             subject: `New TechNest order ${order.order_number}`,
