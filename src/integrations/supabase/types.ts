@@ -490,11 +490,15 @@ export type Database = {
           id: string
           idempotency_key: string | null
           order_number: string
+          payment_confirmed_at: string | null
+          payment_confirmed_by: string | null
           payment_method: string | null
           payment_reference: string | null
+          payment_source: string
           payment_status: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
           status: Database["public"]["Enums"]["order_status"]
+          stock_released: boolean
           subtotal_incl_vat: number
           total_incl_vat: number
           updated_at: string
@@ -515,11 +519,15 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           order_number?: string
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          payment_source?: string
           payment_status?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["order_status"]
+          stock_released?: boolean
           subtotal_incl_vat?: number
           total_incl_vat?: number
           updated_at?: string
@@ -540,11 +548,15 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           order_number?: string
+          payment_confirmed_at?: string | null
+          payment_confirmed_by?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          payment_source?: string
           payment_status?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["order_status"]
+          stock_released?: boolean
           subtotal_incl_vat?: number
           total_incl_vat?: number
           updated_at?: string
@@ -711,6 +723,7 @@ export type Database = {
           image_required: boolean
           import_batch_id: string | null
           import_status: string | null
+          inventory_mode: Database["public"]["Enums"]["inventory_mode"]
           is_clearance: boolean
           is_discontinued: boolean
           is_featured: boolean
@@ -765,6 +778,7 @@ export type Database = {
           image_required?: boolean
           import_batch_id?: string | null
           import_status?: string | null
+          inventory_mode?: Database["public"]["Enums"]["inventory_mode"]
           is_clearance?: boolean
           is_discontinued?: boolean
           is_featured?: boolean
@@ -819,6 +833,7 @@ export type Database = {
           image_required?: boolean
           import_batch_id?: string | null
           import_status?: string | null
+          inventory_mode?: Database["public"]["Enums"]["inventory_mode"]
           is_clearance?: boolean
           is_discontinued?: boolean
           is_featured?: boolean
@@ -1006,6 +1021,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_manual_eft: {
+        Args: {
+          _amount_incl_vat: number
+          _order_id: string
+          _payment_reference: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1015,15 +1038,25 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
-      mark_order_paid: {
-        Args: {
-          _amount_incl_vat: number
-          _order_id: string
-          _payment_method: string
-          _payment_reference: string
-        }
-        Returns: Json
-      }
+      mark_order_paid:
+        | {
+            Args: {
+              _amount_incl_vat: number
+              _order_id: string
+              _payment_method?: string
+              _payment_reference: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _amount_incl_vat: number
+              _order_id: string
+              _payment_method: string
+              _payment_reference: string
+            }
+            Returns: Json
+          }
       place_order: {
         Args: {
           _contact_email: string
@@ -1034,6 +1067,15 @@ export type Database = {
           _delivery_method: string
           _idempotency_key: string
           _items: Json
+        }
+        Returns: Json
+      }
+      release_order_stock: { Args: { _order_id: string }; Returns: undefined }
+      set_order_status: {
+        Args: {
+          _note?: string
+          _order_id: string
+          _status: Database["public"]["Enums"]["order_status"]
         }
         Returns: Json
       }
@@ -1053,6 +1095,11 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      inventory_mode:
+        | "tracked"
+        | "supplier_confirmation"
+        | "unlimited"
+        | "discontinued"
       order_status:
         | "new"
         | "awaiting_stock_confirmation"
@@ -1231,6 +1278,12 @@ export const Constants = {
         "completed",
         "failed",
         "cancelled",
+      ],
+      inventory_mode: [
+        "tracked",
+        "supplier_confirmation",
+        "unlimited",
+        "discontinued",
       ],
       order_status: [
         "new",

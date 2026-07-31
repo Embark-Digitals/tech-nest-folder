@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -88,7 +89,7 @@ function AdminPage() {
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
         </TabsList>
         <TabsContent value="orders" className="pt-6">
-          <OrdersPanel />
+          <OrdersPanel isAdmin={isAdmin} />
         </TabsContent>
         <TabsContent value="crm" className="pt-6">
           <CrmPanel currentUserId={user.id} />
@@ -118,14 +119,18 @@ function AdminPage() {
   );
 }
 
-function OrdersPanel() {
+function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
   const qc = useQueryClient();
+  const [eftOrder, setEftOrder] = useState<{ id: string; number: string; total: number } | null>(null);
+  const [eftRef, setEftRef] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, contact_name, contact_email, status, total_incl_vat, created_at")
+        .select(
+          "id, order_number, contact_name, contact_email, status, total_incl_vat, created_at, payment_status, payment_method, payment_source, payment_reference",
+        )
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -134,13 +139,27 @@ function OrdersPanel() {
   });
 
   const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: status as never })
-      .eq("id", id);
-    if (error) return toast.error("Could not update order");
-    await supabase.from("order_status_history").insert({ order_id: id, status: status as never });
+    const { error } = await supabase.rpc("set_order_status", {
+      _order_id: id,
+      _status: status as never,
+      _note: "Updated from admin console",
+    });
+    if (error) return toast.error(error.message);
     toast.success("Order updated");
+    qc.invalidateQueries({ queryKey: ["admin-orders"] });
+  };
+
+  const confirmEft = async () => {
+    if (!eftOrder) return;
+    const { error } = await supabase.rpc("confirm_manual_eft", {
+      _order_id: eftOrder.id,
+      _payment_reference: eftRef,
+      _amount_incl_vat: eftOrder.total,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Manual EFT recorded");
+    setEftOrder(null);
+    setEftRef("");
     qc.invalidateQueries({ queryKey: ["admin-orders"] });
   };
 
@@ -155,6 +174,7 @@ function OrdersPanel() {
             <TableHead>Customer</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Total</TableHead>
+            <TableHead>Payment</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -168,6 +188,25 @@ function OrdersPanel() {
               </TableCell>
               <TableCell>{formatDate(o.created_at)}</TableCell>
               <TableCell>{formatZAR(Number(o.total_incl_vat))}</TableCell>
+              <TableCell className="text-xs">
+                <span className="font-medium uppercase">{o.payment_status}</span>
+                <span className="block text-muted-foreground">
+                  {o.payment_method}
+                  {o.payment_reference ? ` · ${o.payment_reference}` : ""}
+                </span>
+                {isAdmin && o.payment_status !== "paid" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-1"
+                    onClick={() =>
+                      setEftOrder({ id: o.id, number: o.order_number, total: Number(o.total_incl_vat) })
+                    }
+                  >
+                    Confirm EFT
+                  </Button>
+                )}
+              </TableCell>
               <TableCell>
                 <Select value={o.status} onValueChange={(v) => setStatus(o.id, v)}>
                   <SelectTrigger className="w-56">
@@ -186,16 +225,37 @@ function OrdersPanel() {
           ))}
           {(data ?? []).length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
                 No orders yet.
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
+
+      <Dialog open={!!eftOrder} onOpenChange={(open: boolean) => !open && setEftOrder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm manual EFT</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {eftOrder?.number} · {eftOrder ? formatZAR(eftOrder.total) : ""}
+          </p>
+          <Input
+            placeholder="Bank payment reference"
+            value={eftRef}
+            onChange={(e) => setEftRef(e.target.value)}
+            maxLength={60}
+          />
+          <Button onClick={confirmEft} disabled={eftRef.trim().length < 3}>
+            Record payment received
+          </Button>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
+
 
 type CatalogueFilter =
   | "all"
