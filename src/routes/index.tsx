@@ -55,7 +55,7 @@ function Index() {
             </h1>
             <p className="mt-4 max-w-md text-sm text-muted-foreground">
               Genuine laptops, appliances, audio and gaming gear — live stock status, VAT-inclusive pricing
-              and nationwide delivery.
+              and Gauteng delivery.
             </p>
             <Button
               asChild
