@@ -19,7 +19,12 @@ export type EmailEventType =
   | "order_status_update"
   | "order_eft_instructions"
   | "order_payment_received"
+  | "order_status_stock_confirmed"
+  | "order_status_awaiting_payment"
+  | "order_status_processing"
+  | "order_status_ready_for_dispatch"
   | "order_cancelled"
+  | "order_refunded"
   | "order_dispatched"
   | "order_delivered"
   | "test_message";

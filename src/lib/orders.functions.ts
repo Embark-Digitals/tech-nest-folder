@@ -83,12 +83,14 @@ export const placeOrder = createServerFn({ method: "POST" })
     if (!order.duplicate) {
       try {
         const { tryNotify } = await import("@/lib/email/notifications.server");
+        const { getEmailConfig } = await import("@/lib/email/config.server");
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: settings } = await supabaseAdmin
           .from("site_settings")
           .select("store_email")
           .limit(1)
           .maybeSingle();
+        const staffRecipient = getEmailConfig().orderNotificationAddress ?? settings?.store_email ?? null;
 
         const orderBlock = {
           order_number: order.order_number,
