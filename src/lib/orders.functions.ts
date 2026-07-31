@@ -67,7 +67,7 @@ export const placeOrder = createServerFn({ method: "POST" })
       _contact_phone: data.contact_phone,
       _delivery_address: data.delivery_method === "collection" ? null : data.delivery_address,
       _delivery_method: data.delivery_method,
-      _customer_notes: data.customer_notes ?? null,
+      _customer_notes: data.customer_notes ?? "",
       _idempotency_key: data.idempotency_key,
     });
 
@@ -76,5 +76,9 @@ export const placeOrder = createServerFn({ method: "POST" })
       return { ok: false, error: error.message.replace(/^.*?:\s*/, "") };
     }
 
-    return { ok: true, order: result as PlaceOrderResult extends never ? never : any };
+    return {
+      ok: true,
+      order: result as unknown as Extract<PlaceOrderResult, { ok: true }>["order"],
+    };
   });
+
