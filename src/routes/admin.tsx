@@ -29,6 +29,9 @@ import { useAuth, useRoles } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatZAR, ORDER_STATUS_LABELS, STOCK_LABELS } from "@/lib/format";
 import { slugify, parseCatalogueRows, type ParsedRow } from "@/lib/import-utils";
+import { CrmPanel } from "@/components/admin/CrmPanel";
+import { TeamPanel } from "@/components/admin/TeamPanel";
+import { ReportsPanel } from "@/components/admin/ReportsPanel";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
