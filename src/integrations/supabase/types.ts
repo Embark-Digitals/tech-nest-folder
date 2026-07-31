@@ -297,6 +297,98 @@ export type Database = {
           },
         ]
       }
+      crm_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tasks: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          details: string | null
+          due_date: string | null
+          id: string
+          order_id: string | null
+          status: Database["public"]["Enums"]["crm_task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          details?: string | null
+          due_date?: string | null
+          id?: string
+          order_id?: string | null
+          status?: Database["public"]["Enums"]["crm_task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          details?: string | null
+          due_date?: string | null
+          id?: string
+          order_id?: string | null
+          status?: Database["public"]["Enums"]["crm_task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tasks_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -386,6 +478,7 @@ export type Database = {
       orders: {
         Row: {
           admin_notes: string | null
+          assigned_to: string | null
           contact_email: string
           contact_name: string
           contact_phone: string | null
@@ -398,6 +491,7 @@ export type Database = {
           order_number: string
           payment_method: string | null
           payment_status: string
+          pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
           status: Database["public"]["Enums"]["order_status"]
           subtotal_incl_vat: number
           total_incl_vat: number
@@ -407,6 +501,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          assigned_to?: string | null
           contact_email: string
           contact_name: string
           contact_phone?: string | null
@@ -419,6 +514,7 @@ export type Database = {
           order_number?: string
           payment_method?: string | null
           payment_status?: string
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_incl_vat?: number
           total_incl_vat?: number
@@ -428,6 +524,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          assigned_to?: string | null
           contact_email?: string
           contact_name?: string
           contact_phone?: string | null
@@ -440,6 +537,7 @@ export type Database = {
           order_number?: string
           payment_method?: string | null
           payment_status?: string
+          pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["order_status"]
           subtotal_incl_vat?: number
           total_incl_vat?: number
@@ -920,6 +1018,7 @@ export type Database = {
         | "order_manager"
         | "customer"
       checkout_mode: "live_payment" | "manual_eft" | "request_order"
+      crm_task_status: "open" | "in_progress" | "done" | "cancelled"
       import_status:
         | "pending"
         | "previewing"
@@ -938,6 +1037,13 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "refunded"
+      pipeline_stage:
+        | "new"
+        | "contacted"
+        | "quoted"
+        | "negotiating"
+        | "won"
+        | "lost"
       rounding_method: "exact" | "nearest_rand" | "nearest_ten" | "ends_99"
       stock_status:
         | "available"
@@ -1090,6 +1196,7 @@ export const Constants = {
         "customer",
       ],
       checkout_mode: ["live_payment", "manual_eft", "request_order"],
+      crm_task_status: ["open", "in_progress", "done", "cancelled"],
       import_status: [
         "pending",
         "previewing",
@@ -1109,6 +1216,14 @@ export const Constants = {
         "delivered",
         "cancelled",
         "refunded",
+      ],
+      pipeline_stage: [
+        "new",
+        "contacted",
+        "quoted",
+        "negotiating",
+        "won",
+        "lost",
       ],
       rounding_method: ["exact", "nearest_rand", "nearest_ten", "ends_99"],
       stock_status: [
