@@ -26,7 +26,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
-import { Route as ApiPublicSitemapRouteImport } from './routes/api/public/sitemap'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const TermsRoute = TermsRouteImport.update({
@@ -114,11 +113,6 @@ const AuthResetRoute = AuthResetRouteImport.update({
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
-const ApiPublicSitemapRoute = ApiPublicSitemapRouteImport.update({
-  id: '/api/public/sitemap',
-  path: '/api/public/sitemap',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -144,7 +138,6 @@ export interface FileRoutesByFullPath {
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/api/public/sitemap': typeof ApiPublicSitemapRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -165,7 +158,6 @@ export interface FileRoutesByTo {
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/api/public/sitemap': typeof ApiPublicSitemapRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
@@ -187,7 +179,6 @@ export interface FileRoutesById {
   '/auth/reset': typeof AuthResetRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
-  '/api/public/sitemap': typeof ApiPublicSitemapRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
@@ -210,7 +201,6 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/category/$slug'
     | '/product/$slug'
-    | '/api/public/sitemap'
     | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -231,7 +221,6 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/category/$slug'
     | '/product/$slug'
-    | '/api/public/sitemap'
     | '/api/public/payments/webhook'
   id:
     | '__root__'
@@ -252,7 +241,6 @@ export interface FileRouteTypes {
     | '/auth/reset'
     | '/category/$slug'
     | '/product/$slug'
-    | '/api/public/sitemap'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -273,7 +261,6 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
-  ApiPublicSitemapRoute: typeof ApiPublicSitemapRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -398,13 +385,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
     }
-    '/api/public/sitemap': {
-      id: '/api/public/sitemap'
-      path: '/api/public/sitemap'
-      fullPath: '/api/public/sitemap'
-      preLoaderRoute: typeof ApiPublicSitemapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -442,7 +422,6 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
-  ApiPublicSitemapRoute: ApiPublicSitemapRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
