@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.protect_order_fields() FROM PUBLIC, anon, authenticated;

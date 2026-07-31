@@ -18,6 +18,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
@@ -64,6 +65,12 @@ const CategorySlugRoute = CategorySlugRouteImport.update({
   path: '/category/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +107,7 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/category/$slug'
     | '/product/$slug'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/category/$slug'
     | '/product/$slug'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
@@ -133,6 +145,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/category/$slug'
     | '/product/$slug'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +158,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +246,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

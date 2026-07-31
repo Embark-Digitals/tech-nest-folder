@@ -488,8 +488,10 @@ export type Database = {
           delivery_fee: number
           delivery_method: string | null
           id: string
+          idempotency_key: string | null
           order_number: string
           payment_method: string | null
+          payment_reference: string | null
           payment_status: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
           status: Database["public"]["Enums"]["order_status"]
@@ -511,8 +513,10 @@ export type Database = {
           delivery_fee?: number
           delivery_method?: string | null
           id?: string
+          idempotency_key?: string | null
           order_number?: string
           payment_method?: string | null
+          payment_reference?: string | null
           payment_status?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["order_status"]
@@ -534,8 +538,10 @@ export type Database = {
           delivery_fee?: number
           delivery_method?: string | null
           id?: string
+          idempotency_key?: string | null
           order_number?: string
           payment_method?: string | null
+          payment_reference?: string | null
           payment_status?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
           status?: Database["public"]["Enums"]["order_status"]
@@ -1009,6 +1015,28 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      mark_order_paid: {
+        Args: {
+          _amount_incl_vat: number
+          _order_id: string
+          _payment_method: string
+          _payment_reference: string
+        }
+        Returns: Json
+      }
+      place_order: {
+        Args: {
+          _contact_email: string
+          _contact_name: string
+          _contact_phone: string
+          _customer_notes: string
+          _delivery_address: Json
+          _delivery_method: string
+          _idempotency_key: string
+          _items: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
