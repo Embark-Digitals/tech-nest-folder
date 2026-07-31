@@ -50,7 +50,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-background">
-      <div className="border-b border-border bg-muted px-4 py-2 text-center text-[11px] uppercase tracking-[0.14em] text-neon-blue">
+      <div className="border-b border-border bg-muted px-4 py-2 text-center text-[11px] uppercase tracking-[0.14em] text-foreground">
         Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
       </div>
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4">
