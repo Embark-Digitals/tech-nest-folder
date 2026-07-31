@@ -458,9 +458,15 @@ function Checkout() {
             </p>
           )}
           <Separator className="my-4" />
-
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Total excl. VAT</span>
+            <span>{formatZAR(exVat)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">VAT (15%)</span>
             <span>{formatZAR(total - exVat)}</span>
           </div>
+
           <Separator className="my-4" />
           <div className="flex justify-between font-display text-lg font-bold">
             <span>Total</span>
