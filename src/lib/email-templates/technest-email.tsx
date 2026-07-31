@@ -89,7 +89,7 @@ export function TechNestEmail({ heading, intro, order, body = [], footerNote }: 
           <Hr style={{ borderColor: "#e5e7eb", margin: "24px 0" }} />
           {footerNote && <Text style={muted}>{footerNote}</Text>}
           <Text style={muted}>
-            TechNest · Nationwide delivery across South Africa · All prices in ZAR incl. 15% VAT
+            TechNest · Gauteng delivery and collection · All prices in ZAR incl. 15% VAT
           </Text>
         </Container>
       </Body>

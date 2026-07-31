@@ -16,7 +16,7 @@ export function Footer() {
             <span className="font-display text-xl font-bold">echNest</span>
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            South African technology retailer. Genuine stock, transparent ZAR pricing and nationwide delivery.
+            South African technology retailer. Genuine stock, transparent ZAR pricing and Gauteng delivery.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-2">
               <Truck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <span>{settings?.delivery_note ?? "Nationwide delivery available."}</span>
+              <span>{settings?.delivery_note ?? "Delivery within Gauteng. Collection available."}</span>
             </li>
           </ul>
         </div>
