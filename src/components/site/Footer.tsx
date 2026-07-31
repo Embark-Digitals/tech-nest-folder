@@ -39,25 +39,36 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="font-display text-xs font-semibold uppercase tracking-[0.14em]">Account</h3>
+          <h3 className="font-display text-xs font-semibold uppercase tracking-[0.14em]">Help</h3>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <li>
+              <Link to="/about" className="hover:text-primary">
+                About TechNest
+              </Link>
+            </li>
+            <li>
+              <Link to="/delivery" className="hover:text-primary">
+                Delivery &amp; collection
+              </Link>
+            </li>
+            <li>
+              <Link to="/faq" className="hover:text-primary">
+                FAQ
+              </Link>
+            </li>
+            <li>
+              <Link to="/returns" className="hover:text-primary">
+                Returns &amp; warranty
+              </Link>
+            </li>
             <li>
               <Link to="/account" className="hover:text-primary">
                 My account
               </Link>
             </li>
-            <li>
-              <Link to="/cart" className="hover:text-primary">
-                Cart
-              </Link>
-            </li>
-            <li>
-              <Link to="/checkout" className="hover:text-primary">
-                Checkout
-              </Link>
-            </li>
           </ul>
         </div>
+
 
         <div>
           <h3 className="font-display text-xs font-semibold uppercase tracking-[0.14em]">Contact</h3>
