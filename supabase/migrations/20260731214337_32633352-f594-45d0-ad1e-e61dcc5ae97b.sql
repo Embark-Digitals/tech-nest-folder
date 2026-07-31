@@ -1,0 +1,1 @@
+DELETE FROM public.profiles WHERE email LIKE '%@technest-qa.invalid';
