@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { StockBadge } from "@/components/site/StockBadge";
 import { ProductCard } from "@/components/site/ProductCard";
+import { JsonLd } from "@/components/site/JsonLd";
 import { formatZAR, VAT_RATE } from "@/lib/format";
 import { primaryImage, productQuery, productsQuery } from "@/lib/catalogue";
 import { useCart } from "@/lib/cart";
