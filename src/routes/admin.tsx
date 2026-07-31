@@ -149,11 +149,15 @@ function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
   const notify = useServerFn(notifyOrderEvent);
 
   const STATUS_EMAIL: Record<string, string> = {
+    stock_confirmed: "order_status_stock_confirmed",
     awaiting_payment: "order_eft_instructions",
     paid: "order_payment_received",
+    processing: "order_status_processing",
+    ready_for_dispatch: "order_status_ready_for_dispatch",
     shipped: "order_dispatched",
     delivered: "order_delivered",
     cancelled: "order_cancelled",
+    refunded: "order_refunded",
   };
 
   const setStatus = async (id: string, status: string) => {

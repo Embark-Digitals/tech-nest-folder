@@ -57,6 +57,7 @@ export const sendTestEmail = createServerFn({ method: "POST" })
 /**
  * Queue the notifications for an order event. Called after the order or its
  * status has already been written, so email problems never block the order.
+ * Every value in the email comes from the stored order row.
  */
 export const notifyOrderEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -66,10 +67,16 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
         order_id: z.string().uuid(),
         event: z.enum([
           "order_confirmation",
+          "order_staff_notification",
           "order_status_update",
           "order_eft_instructions",
           "order_payment_received",
+          "order_status_stock_confirmed",
+          "order_status_awaiting_payment",
+          "order_status_processing",
+          "order_status_ready_for_dispatch",
           "order_cancelled",
+          "order_refunded",
           "order_dispatched",
           "order_delivered",
         ]),
@@ -81,6 +88,8 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { tryNotify } = await import("@/lib/email/notifications.server");
+    const { orderEmailCopy } = await import("@/lib/email/copy.server");
+    const { getEmailConfig } = await import("@/lib/email/config.server");
 
     const { data: order } = await supabaseAdmin
       .from("orders")
@@ -100,6 +109,7 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
+    const cfg = getEmailConfig();
     const orderBlock = {
       order_number: order.order_number,
       total_incl_vat: Number(order.total_incl_vat),
@@ -111,60 +121,30 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
       })),
     };
 
-    const copy: Record<string, { subject: string; heading: string; intro: string; body?: string[] }> = {
-      order_confirmation: {
-        subject: `TechNest order ${order.order_number} received`,
-        heading: `Thank you, ${order.contact_name}`,
-        intro: `We have received your order ${order.order_number}. Our team will confirm stock and be in touch shortly.`,
-      },
-      order_status_update: {
-        subject: `TechNest order ${order.order_number} update`,
-        heading: "Your order status has changed",
-        intro: `Order ${order.order_number} is now "${order.status.replace(/_/g, " ")}".`,
-      },
-      order_eft_instructions: {
-        subject: `Payment instructions for TechNest order ${order.order_number}`,
-        heading: "How to pay by EFT",
-        intro: `Please use the banking details below and quote ${order.order_number} as your payment reference.`,
-        body: [settings?.eft_details ?? "Our banking details will be sent to you by a consultant."],
-      },
-      order_payment_received: {
-        subject: `Payment received for TechNest order ${order.order_number}`,
-        heading: "Payment received",
-        intro: `We have confirmed your payment for order ${order.order_number}. Reference ${order.payment_reference ?? "—"}.`,
-      },
-      order_cancelled: {
-        subject: `TechNest order ${order.order_number} cancelled`,
-        heading: "Your order has been cancelled",
-        intro: `Order ${order.order_number} has been cancelled. Any reserved stock has been released.`,
-      },
-      order_dispatched: {
-        subject: `TechNest order ${order.order_number} dispatched`,
-        heading: "Your order is on its way",
-        intro: `Order ${order.order_number} has been dispatched. ${settings?.delivery_note ?? ""}`.trim(),
-      },
-      order_delivered: {
-        subject: `TechNest order ${order.order_number} delivered`,
-        heading: "Delivered",
-        intro: `Order ${order.order_number} has been marked as delivered. Thank you for shopping with TechNest.`,
-      },
-    };
+    const copy = orderEmailCopy(data.event, {
+      order_number: order.order_number,
+      contact_name: order.contact_name,
+      contact_email: order.contact_email,
+      status: order.status,
+      payment_reference: order.payment_reference,
+      eft_details: settings?.eft_details ?? null,
+      delivery_note: settings?.delivery_note ?? null,
+      support_email: cfg.supportAddress ?? settings?.store_email ?? null,
+    });
 
-    const c = copy[data.event];
+    const staffRecipient = cfg.orderNotificationAddress ?? settings?.store_email ?? null;
+    const recipient = data.event === "order_staff_notification" ? staffRecipient : order.contact_email;
+    if (!recipient) return { ok: false as const, error: "No notification recipient is configured." };
+
     const outcome = await tryNotify({
-      event_type: data.event,
-      recipient: order.contact_email,
+      event_type: data.event as any,
+      recipient,
       order_id: order.id,
       dedupe_key: `${data.event}:${order.id}:${order.status}`,
-      subject: c.subject,
-      content: {
-        heading: c.heading,
-        intro: c.intro,
-        body: c.body,
-        order: orderBlock,
-        footerNote: settings?.store_email ? `Questions? Reply or email ${settings.store_email}.` : undefined,
-      },
+      subject: copy.subject,
+      content: { ...copy.content, order: orderBlock },
     });
 
     return { ok: true as const, outcome };
   });
+
