@@ -305,9 +305,16 @@ export const createSupplierImport = createServerFn({ method: "POST" })
           const brandChanges: Record<string, any> = {};
           if (brandHit) brandChanges["brand_id"] = { old: null, new: brandHit.id, source: src, confidence: "medium", label: brandHit.name };
           if (catHit) brandChanges["category_id"] = { old: null, new: catHit.id, source: src, confidence: "medium", label: catHit.name };
+          // A brand-new line that the supplier already marks end-of-life should
+          // never be created as a live product without a human decision.
+          const newButDead = DISCONTINUED_RE.test(r.availability_raw ?? "");
+          if (newButDead)
+            mappingNotes.push(
+              `Supplier lists this new line as "${r.availability_raw}" — it will be created as discontinued and stay unpublished.`,
+            );
           return {
             ...base,
-            change_type: "new",
+            change_type: newButDead ? "discontinued" : "new",
             match_method: "none",
             match_reason: "No existing product matched on supplier code, model, part number, TechNest code or name.",
             match_confidence: 100,
@@ -317,6 +324,7 @@ export const createSupplierImport = createServerFn({ method: "POST" })
             decision: "pending",
           };
         }
+
 
         matchedIds.add(match.id);
         (base.normalised as any).existing_price_incl_vat = match.selling_price_incl_vat ?? null;
