@@ -201,7 +201,12 @@ function ProductPage() {
                   },
                   qty,
                 );
+                track("add_to_cart", {
+                  value: price * qty,
+                  items: [itemPayload({ sku: product.sku, name: product.name, price, quantity: qty })],
+                });
                 toast.success(`${product.name} added to cart`);
+
               }}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
