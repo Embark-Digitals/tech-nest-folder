@@ -35,6 +35,7 @@ import { TeamPanel } from "@/components/admin/TeamPanel";
 import { ReportsPanel } from "@/components/admin/ReportsPanel";
 import { SupplierImportPanel } from "@/components/admin/SupplierImportPanel";
 import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
+import { ShippingPanel } from "@/components/admin/ShippingPanel";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOrderEvent } from "@/lib/email.functions";
 
