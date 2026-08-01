@@ -1188,6 +1188,7 @@ export type Database = {
           pricing_review_required: boolean
           promotional_price_ex_vat: number | null
           quantity: number | null
+          review_locked: boolean
           screen_size: string | null
           selling_price_ex_vat: number | null
           selling_price_incl_vat: number | null
@@ -1202,11 +1203,13 @@ export type Database = {
           source_type: string | null
           source_workbook: string | null
           source_worksheet: string | null
+          spec_review_required: boolean
           specifications_text: string | null
           stock_status: Database["public"]["Enums"]["stock_status"]
           subcategory_id: string | null
           supplier_availability: Database["public"]["Enums"]["supplier_availability"]
           supplier_availability_note: string | null
+          supplier_price_anomaly: boolean
           supplier_sku: string | null
           updated_at: string
           vat_amount: number | null
@@ -1253,6 +1256,7 @@ export type Database = {
           pricing_review_required?: boolean
           promotional_price_ex_vat?: number | null
           quantity?: number | null
+          review_locked?: boolean
           screen_size?: string | null
           selling_price_ex_vat?: number | null
           selling_price_incl_vat?: number | null
@@ -1267,11 +1271,13 @@ export type Database = {
           source_type?: string | null
           source_workbook?: string | null
           source_worksheet?: string | null
+          spec_review_required?: boolean
           specifications_text?: string | null
           stock_status?: Database["public"]["Enums"]["stock_status"]
           subcategory_id?: string | null
           supplier_availability?: Database["public"]["Enums"]["supplier_availability"]
           supplier_availability_note?: string | null
+          supplier_price_anomaly?: boolean
           supplier_sku?: string | null
           updated_at?: string
           vat_amount?: number | null
@@ -1318,6 +1324,7 @@ export type Database = {
           pricing_review_required?: boolean
           promotional_price_ex_vat?: number | null
           quantity?: number | null
+          review_locked?: boolean
           screen_size?: string | null
           selling_price_ex_vat?: number | null
           selling_price_incl_vat?: number | null
@@ -1332,11 +1339,13 @@ export type Database = {
           source_type?: string | null
           source_workbook?: string | null
           source_worksheet?: string | null
+          spec_review_required?: boolean
           specifications_text?: string | null
           stock_status?: Database["public"]["Enums"]["stock_status"]
           subcategory_id?: string | null
           supplier_availability?: Database["public"]["Enums"]["supplier_availability"]
           supplier_availability_note?: string | null
+          supplier_price_anomaly?: boolean
           supplier_sku?: string | null
           updated_at?: string
           vat_amount?: number | null
@@ -1600,32 +1609,80 @@ export type Database = {
       site_settings: {
         Row: {
           checkout_mode: Database["public"]["Enums"]["checkout_mode"]
+          collection_hours: string | null
+          company_registration_number: string | null
           delivery_note: string
           eft_details: string | null
           id: string
+          legal_last_reviewed_at: string | null
+          legal_review_status: string
+          legal_reviewed_by: string | null
+          legal_service_address: string | null
+          legal_status: string | null
+          office_bearers: string | null
+          order_email: string | null
+          physical_address: string | null
+          place_of_registration: string | null
+          registered_business_name: string | null
           store_email: string
           store_phone: string
+          support_email: string | null
+          telephone_number: string | null
+          trading_name: string | null
           updated_at: string
+          website_url: string | null
           whatsapp_number: string
         }
         Insert: {
           checkout_mode?: Database["public"]["Enums"]["checkout_mode"]
+          collection_hours?: string | null
+          company_registration_number?: string | null
           delivery_note?: string
           eft_details?: string | null
           id?: string
+          legal_last_reviewed_at?: string | null
+          legal_review_status?: string
+          legal_reviewed_by?: string | null
+          legal_service_address?: string | null
+          legal_status?: string | null
+          office_bearers?: string | null
+          order_email?: string | null
+          physical_address?: string | null
+          place_of_registration?: string | null
+          registered_business_name?: string | null
           store_email?: string
           store_phone?: string
+          support_email?: string | null
+          telephone_number?: string | null
+          trading_name?: string | null
           updated_at?: string
+          website_url?: string | null
           whatsapp_number?: string
         }
         Update: {
           checkout_mode?: Database["public"]["Enums"]["checkout_mode"]
+          collection_hours?: string | null
+          company_registration_number?: string | null
           delivery_note?: string
           eft_details?: string | null
           id?: string
+          legal_last_reviewed_at?: string | null
+          legal_review_status?: string
+          legal_reviewed_by?: string | null
+          legal_service_address?: string | null
+          legal_status?: string | null
+          office_bearers?: string | null
+          order_email?: string | null
+          physical_address?: string | null
+          place_of_registration?: string | null
+          registered_business_name?: string | null
           store_email?: string
           store_phone?: string
+          support_email?: string | null
+          telephone_number?: string | null
+          trading_name?: string | null
           updated_at?: string
+          website_url?: string | null
           whatsapp_number?: string
         }
         Relationships: []

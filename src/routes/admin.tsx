@@ -39,6 +39,8 @@ import { ReportsPanel } from "@/components/admin/ReportsPanel";
 import { SupplierImportPanel } from "@/components/admin/SupplierImportPanel";
 import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
 import { ShippingPanel } from "@/components/admin/ShippingPanel";
+import { BusinessInfoPanel } from "@/components/admin/BusinessInfoPanel";
+import { ReviewQueuePanel } from "@/components/admin/ReviewQueuePanel";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOrderEvent } from "@/lib/email.functions";
 
@@ -98,6 +100,7 @@ function AdminPage() {
           <TabsTrigger value="inbox">Inbox</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="business">Business & legal</TabsTrigger>}
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
         </TabsList>
         <TabsContent value="orders" className="pt-6">
@@ -106,7 +109,8 @@ function AdminPage() {
         <TabsContent value="crm" className="pt-6">
           <CrmPanel currentUserId={user.id} />
         </TabsContent>
-        <TabsContent value="catalogue" className="pt-6">
+        <TabsContent value="catalogue" className="space-y-6 pt-6">
+          <ReviewQueuePanel />
           <CataloguePanel />
         </TabsContent>
         <TabsContent value="import" className="pt-6">
@@ -128,6 +132,11 @@ function AdminPage() {
         {isAdmin && (
           <TabsContent value="pricing" className="pt-6">
             <PricingPanel userId={user.id} />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="business" className="pt-6">
+            <BusinessInfoPanel isAdmin={isAdmin} />
           </TabsContent>
         )}
         {isAdmin && (
