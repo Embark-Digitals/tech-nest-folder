@@ -120,7 +120,10 @@ export function BusinessInfoPanel({ isAdmin }: { isAdmin: boolean }) {
     payload["store_phone"] = payload["telephone_number"] ?? "";
     payload["whatsapp_number"] = payload["whatsapp_number"] ?? "";
     payload["store_email"] = payload["support_email"] ?? (settings["store_email"] as string);
-    const { error } = await supabase.from("site_settings").update(payload).eq("id", settings.id);
+    const { error } = await supabase
+      .from("site_settings")
+      .update(payload as never)
+      .eq("id", settings.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Business information saved");
