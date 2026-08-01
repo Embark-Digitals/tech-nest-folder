@@ -39,6 +39,7 @@ import { ReportsPanel } from "@/components/admin/ReportsPanel";
 import { SupplierImportPanel } from "@/components/admin/SupplierImportPanel";
 import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
 import { ShippingPanel } from "@/components/admin/ShippingPanel";
+import { BusinessInfoPanel } from "@/components/admin/BusinessInfoPanel";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOrderEvent } from "@/lib/email.functions";
 
@@ -129,6 +130,11 @@ function AdminPage() {
         {isAdmin && (
           <TabsContent value="pricing" className="pt-6">
             <PricingPanel userId={user.id} />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="business" className="pt-6">
+            <BusinessInfoPanel isAdmin={isAdmin} />
           </TabsContent>
         )}
         {isAdmin && (
