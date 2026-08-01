@@ -40,6 +40,7 @@ import { SupplierImportPanel } from "@/components/admin/SupplierImportPanel";
 import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
 import { ShippingPanel } from "@/components/admin/ShippingPanel";
 import { BusinessInfoPanel } from "@/components/admin/BusinessInfoPanel";
+import { ReviewQueuePanel } from "@/components/admin/ReviewQueuePanel";
 import { useServerFn } from "@tanstack/react-start";
 import { notifyOrderEvent } from "@/lib/email.functions";
 
@@ -108,7 +109,8 @@ function AdminPage() {
         <TabsContent value="crm" className="pt-6">
           <CrmPanel currentUserId={user.id} />
         </TabsContent>
-        <TabsContent value="catalogue" className="pt-6">
+        <TabsContent value="catalogue" className="space-y-6 pt-6">
+          <ReviewQueuePanel />
           <CataloguePanel />
         </TabsContent>
         <TabsContent value="import" className="pt-6">
