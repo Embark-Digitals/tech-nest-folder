@@ -98,6 +98,7 @@ function AdminPage() {
           <TabsTrigger value="inbox">Inbox</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           {isAdmin && <TabsTrigger value="pricing">Pricing</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="business">Business & legal</TabsTrigger>}
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
         </TabsList>
         <TabsContent value="orders" className="pt-6">
