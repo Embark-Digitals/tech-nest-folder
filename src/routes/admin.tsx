@@ -2,7 +2,6 @@ import { useState } from "react";
 import { noindexMeta } from "@/lib/site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { trackOnce } from "@/lib/analytics";
 import { ContactInboxPanel } from "@/components/admin/ContactInboxPanel";
@@ -32,7 +31,6 @@ import {
 import { useAuth, useRoles } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatZAR, ORDER_STATUS_LABELS, STOCK_LABELS } from "@/lib/format";
-import { slugify, parseCatalogueRows, type ParsedRow } from "@/lib/import-utils";
 import { CrmPanel } from "@/components/admin/CrmPanel";
 import { TeamPanel } from "@/components/admin/TeamPanel";
 import { ReportsPanel } from "@/components/admin/ReportsPanel";
@@ -544,182 +542,6 @@ function CataloguePanel() {
             )}
           </TableBody>
         </Table>
-      </Card>
-    </div>
-  );
-}
-
-
-function ImportPanel({ userId }: { userId: string }) {
-  const qc = useQueryClient();
-  const [rows, setRows] = useState<ParsedRow[]>([]);
-  const [fileName, setFileName] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const imports = useQuery({
-    queryKey: ["catalogue-imports"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("catalogue_imports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const onFile = async (file: File) => {
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-    setFileName(file.name);
-    setRows(parseCatalogueRows(json));
-  };
-
-  const commit = async () => {
-    setBusy(true);
-    const valid = rows.filter((r) => r.valid);
-    const invalid = rows.filter((r) => !r.valid);
-
-    const { data: importRow } = await supabase
-      .from("catalogue_imports")
-      .insert({
-        file_name: fileName,
-        imported_by: userId,
-        status: "previewing",
-        total_rows: rows.length,
-      })
-      .select("id")
-      .single();
-
-    let created = 0;
-    let updated = 0;
-
-    for (const row of valid) {
-      const { data: existing } = await supabase.from("products").select("id").eq("sku", row.sku).maybeSingle();
-      const payload = {
-        sku: row.sku,
-        name: row.name,
-        slug: slugify(row.name || row.sku),
-        short_description: row.description || null,
-        promotional_price_ex_vat: row.promotionalPrice,
-        dealer_price_ex_vat: row.dealerPrice,
-        supplier_availability: row.availability as never,
-        stock_status: row.stockStatus as never,
-        quantity: row.quantity,
-      };
-      if (existing) {
-        const { error } = await supabase.from("products").update(payload).eq("id", existing.id);
-        if (!error) updated += 1;
-      } else {
-        const { error } = await supabase.from("products").insert(payload);
-        if (!error) created += 1;
-      }
-    }
-
-    if (importRow) {
-      await supabase
-        .from("catalogue_imports")
-        .update({
-          status: "completed",
-          created_count: created,
-          updated_count: updated,
-          error_count: invalid.length,
-          skipped_count: invalid.length,
-        })
-        .eq("id", importRow.id);
-
-      if (invalid.length) {
-        await supabase.from("catalogue_import_errors").insert(
-          invalid.map((r) => ({
-            import_id: importRow.id,
-            row_number: r.rowNumber,
-            product_code: r.sku || null,
-            error_type: "validation",
-            message: r.error ?? "Invalid row",
-          })),
-        );
-      }
-    }
-
-    setBusy(false);
-    setRows([]);
-    toast.success(`Import complete — ${created} created, ${updated} updated, ${invalid.length} skipped`);
-    qc.invalidateQueries({ queryKey: ["catalogue-imports"] });
-    qc.invalidateQueries({ queryKey: ["admin-products"] });
-  };
-
-  return (
-    <div className="space-y-6">
-      <Card className="space-y-4 p-6">
-        <h2 className="font-display text-lg font-semibold">Import supplier catalogue (.xlsx / .csv)</h2>
-        <p className="text-sm text-muted-foreground">
-          Expected columns: Product Code, Description, Promotional Price, Dealer Price, Availability, Quantity.
-          Selling prices are calculated automatically using your markup and VAT settings.
-        </p>
-        <Input
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
-        />
-        {rows.length > 0 && (
-          <div>
-            <p className="text-sm">
-              {rows.filter((r) => r.valid).length} valid rows · {rows.filter((r) => !r.valid).length} with errors
-            </p>
-            <div className="mt-3 max-h-80 overflow-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Row</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Promo price</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.slice(0, 100).map((r) => (
-                    <TableRow key={r.rowNumber}>
-                      <TableCell>{r.rowNumber}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.sku}</TableCell>
-                      <TableCell className="max-w-xs truncate">{r.name}</TableCell>
-                      <TableCell>{r.promotionalPrice ? formatZAR(r.promotionalPrice) : "—"}</TableCell>
-                      <TableCell>
-                        {r.valid ? (
-                          <Badge className="border-0 bg-success text-success-foreground">Ready</Badge>
-                        ) : (
-                          <Badge className="border-0 bg-destructive text-destructive-foreground">{r.error}</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <Button className="mt-4" onClick={commit} disabled={busy}>
-              {busy ? "Importing…" : "Commit import"}
-            </Button>
-          </div>
-        )}
-      </Card>
-
-      <Card className="p-6">
-        <h2 className="font-display text-lg font-semibold">Recent imports</h2>
-        <div className="mt-4 space-y-2 text-sm">
-          {(imports.data ?? []).map((i) => (
-            <div key={i.id} className="flex flex-wrap justify-between gap-2 border-b py-2 last:border-0">
-              <span className="font-medium">{i.file_name}</span>
-              <span className="text-muted-foreground">
-                {i.created_count} created · {i.updated_count} updated · {i.error_count} errors ·{" "}
-                {formatDate(i.created_at)}
-              </span>
-            </div>
-          ))}
-          {(imports.data ?? []).length === 0 && <p className="text-muted-foreground">No imports yet.</p>}
-        </div>
       </Card>
     </div>
   );

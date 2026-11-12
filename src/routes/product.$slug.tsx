@@ -13,7 +13,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { JsonLd } from "@/components/site/JsonLd";
 import { track, itemPayload } from "@/lib/analytics";
 import { formatZAR, VAT_RATE } from "@/lib/format";
-import { primaryImage, productQuery, productsQuery } from "@/lib/catalogue";
+import { isBuyable, primaryImage, productQuery, productsQuery } from "@/lib/catalogue";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,11 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { slug } = Route.useParams();
   const { data: product, isLoading } = useQuery(productQuery(slug));
-  const { data: related } = useQuery(productsQuery({ category: product?.categories?.slug }));
+  const { data: relatedData } = useQuery({
+    ...productsQuery({ category: product?.categories?.slug, limit: 8 }),
+    enabled: !!product?.categories?.slug,
+  });
+  const related = relatedData?.rows;
   const cart = useCart();
   const { user } = useAuth();
   const [qty, setQty] = useState(1);
@@ -92,7 +96,15 @@ function ProductPage() {
   const image = primaryImage(product);
   const price = product.selling_price_incl_vat ?? 0;
   const exVat = price / (1 + VAT_RATE);
-  const buyable = price > 0 && product.stock_status !== "out_of_stock";
+  const buyable = isBuyable(product);
+  const discontinued = product.is_discontinued || product.stock_status === "discontinued";
+  const stockNote = discontinued
+    ? "No longer available — the supplier has discontinued this product."
+    : product.stock_status === "preorder"
+      ? "Coming soon. Order now and we confirm the delivery date with you before you pay."
+      : product.stock_status === "awaiting_confirmation"
+        ? "We confirm stock with our supplier before you pay."
+        : null;
 
   const addToWishlist = async () => {
     if (!user) {
@@ -119,9 +131,13 @@ function ProductPage() {
       "@type": "Offer",
       priceCurrency: "ZAR",
       price: price.toFixed(2),
-      availability: buyable
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
+      availability: discontinued
+        ? "https://schema.org/Discontinued"
+        : !buyable
+          ? "https://schema.org/OutOfStock"
+          : product.stock_status === "preorder"
+            ? "https://schema.org/PreOrder"
+            : "https://schema.org/InStock",
       url: `${origin}/product/${product.slug}`,
       seller: { "@type": "Organization", name: "TechNest" },
     },
@@ -188,6 +204,7 @@ function ProductPage() {
           <h1 className="mt-2 font-display text-3xl font-bold">{product.name}</h1>
           <div className="mt-3">
             <StockBadge status={product.stock_status} quantity={product.quantity} />
+            {stockNote && <p className="mt-2 text-sm text-muted-foreground">{stockNote}</p>}
           </div>
 
           <p className="mt-6 font-display text-4xl font-bold">{formatZAR(price)}</p>
@@ -233,7 +250,7 @@ function ProductPage() {
               }}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
-              {buyable ? "Add to cart" : "Unavailable"}
+              {buyable ? "Add to cart" : discontinued ? "No longer available" : "Unavailable"}
             </Button>
             <Button size="lg" variant="outline" onClick={addToWishlist}>
               <Heart className="mr-2 h-4 w-4" /> Wishlist

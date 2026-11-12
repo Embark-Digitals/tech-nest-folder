@@ -18,9 +18,13 @@ import {
   applySupplierImport,
   createSupplierImport,
   decideImportRows,
+  PRICE_LISTS,
+  type PriceListKey,
   rollbackSupplierImport,
   suggestRowMetadata,
 } from "@/lib/catalogue-import.functions";
+
+const OTHER_SUPPLIER = "other";
 
 const FORMAT_SUPPORT: Record<string, { label: string; tone: string }> = {
   xlsx: { label: "Fully supported", tone: "bg-emerald-100 text-emerald-800" },
@@ -54,6 +58,7 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
   const [fileName, setFileName] = useState("");
   const [supplier, setSupplier] = useState("");
+  const [priceList, setPriceList] = useState<PriceListKey | typeof OTHER_SUPPLIER | "">("");
   const [isTest, setIsTest] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [activeImport, setActiveImport] = useState<string | null>(null);
@@ -139,7 +144,8 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
           file_name: pendingFile.name,
           checksum: extraction.checksum,
           storage_path: storagePath,
-          supplier: supplier.trim() || null,
+          supplier: priceList === OTHER_SUPPLIER ? supplier.trim() || null : "Atlas",
+          price_list: priceList && priceList !== OTHER_SUPPLIER ? priceList : null,
           catalogue_date: extraction.catalogue_date,
           format: extraction.format,
           parser_version: extraction.parser_version,
@@ -208,11 +214,25 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
             />
           </div>
           <div>
-            <Label htmlFor="supplier-name">Supplier</Label>
-            <Input id="supplier-name" className="mt-1" value={supplier} maxLength={120}
-              onChange={(e) => setSupplier(e.target.value)} placeholder="e.g. Hisense SA" />
+            <Label htmlFor="price-list">Price list</Label>
+            <Select value={priceList} onValueChange={(v) => setPriceList(v as typeof priceList)}>
+              <SelectTrigger id="price-list" className="mt-1"><SelectValue placeholder="Choose the list" /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRICE_LISTS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+                <SelectItem value={OTHER_SUPPLIER}>Another supplier</SelectItem>
+              </SelectContent>
+            </Select>
+            {priceList === OTHER_SUPPLIER && (
+              <Input aria-label="Supplier name" className="mt-2" value={supplier} maxLength={120}
+                onChange={(e) => setSupplier(e.target.value)} placeholder="Supplier name" />
+            )}
           </div>
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          The price list decides which products count as "missing": only products from the same list are compared.
+        </p>
 
         <label className="mt-3 flex items-center gap-2 text-sm">
           <Checkbox checked={isTest} onCheckedChange={(v) => setIsTest(!!v)} />
@@ -249,9 +269,10 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{w}
               </p>
             ))}
+            {!priceList && <p className="mt-3 text-sm text-amber-800">Choose the price list above before running the comparison.</p>}
             <Button
               className="mt-4"
-              disabled={!isAdmin || !!busy || extraction.format === "pdf_scanned" || extraction.format === "unsupported"}
+              disabled={!isAdmin || !!busy || !priceList || extraction.format === "pdf_scanned" || extraction.format === "unsupported"}
               onClick={() => runDryRun.mutate()}
             >
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -312,10 +333,24 @@ export function SupplierImportPanel({ isAdmin }: { isAdmin: boolean }) {
               Reject entire import
             </Button>
             <Button size="sm" className="ml-auto" disabled={!isAdmin || !!busy}
-              onClick={() => run("Applying…", () => apply({ data: { import_id: activeImport, flag_absent: true } }), "Approved changes applied.")}>
+              onClick={async () => {
+                const res = await run("Applying…", () => apply({ data: { import_id: activeImport, flag_absent: true } }), "Approved changes applied.");
+                if (res?.ok) {
+                  toast.message(
+                    `Created ${res.created ?? 0}, updated ${res.updated ?? 0}, hidden ${res.hidden ?? 0}` +
+                      (res.locked_skipped ? `, ${res.locked_skipped} locked product(s) left unchanged` : "") +
+                      (res.failed ? `, ${res.failed} failed` : "") + ".",
+                    { duration: 10000 },
+                  );
+                }
+              }}>
               <CheckCircle2 className="mr-1 h-4 w-4" />Apply approved changes
             </Button>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            "Missing" rows are products no longer on this price list. Select one and approve it to hide that product from the
+            shop (roll back the import to undo). Bulk approval never includes missing rows.
+          </p>
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
