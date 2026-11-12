@@ -800,6 +800,101 @@ export type Database = {
           },
         ]
       }
+      order_fulfilment: {
+        Row: {
+          courier: string | null
+          created_at: string
+          order_id: string
+          ordered_with_supplier_at: string | null
+          supplier: string
+          supplier_invoice_ref: string | null
+          supplier_order_ref: string | null
+          tracking_number: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          courier?: string | null
+          created_at?: string
+          order_id: string
+          ordered_with_supplier_at?: string | null
+          supplier?: string
+          supplier_invoice_ref?: string | null
+          supplier_order_ref?: string | null
+          tracking_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          courier?: string | null
+          created_at?: string
+          order_id?: string
+          ordered_with_supplier_at?: string | null
+          supplier?: string
+          supplier_invoice_ref?: string | null
+          supplier_order_ref?: string | null
+          tracking_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_fulfilment_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_item_costs: {
+        Row: {
+          actual_unit_cost_ex_vat: number | null
+          cost_source: string
+          created_at: string
+          expected_unit_cost_ex_vat: number | null
+          order_id: string
+          order_item_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          actual_unit_cost_ex_vat?: number | null
+          cost_source?: string
+          created_at?: string
+          expected_unit_cost_ex_vat?: number | null
+          order_id: string
+          order_item_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          actual_unit_cost_ex_vat?: number | null
+          cost_source?: string
+          created_at?: string
+          expected_unit_cost_ex_vat?: number | null
+          order_id?: string
+          order_item_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_costs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_costs_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: true
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -914,6 +1009,10 @@ export type Database = {
           payment_source: string
           payment_status: string
           pipeline_stage: Database["public"]["Enums"]["pipeline_stage"]
+          refund_reference: string | null
+          refunded_amount: number | null
+          refunded_at: string | null
+          refunded_by: string | null
           status: Database["public"]["Enums"]["order_status"]
           stock_released: boolean
           subtotal_incl_vat: number
@@ -949,6 +1048,10 @@ export type Database = {
           payment_source?: string
           payment_status?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          refund_reference?: string | null
+          refunded_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           stock_released?: boolean
           subtotal_incl_vat?: number
@@ -984,6 +1087,10 @@ export type Database = {
           payment_source?: string
           payment_status?: string
           pipeline_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          refund_reference?: string | null
+          refunded_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           stock_released?: boolean
           subtotal_incl_vat?: number
@@ -1803,6 +1910,15 @@ export type Database = {
           _method: string
           _postal_code: string
           _province: string
+        }
+        Returns: Json
+      }
+      record_refund: {
+        Args: {
+          _amount_incl_vat: number
+          _note?: string
+          _order_id: string
+          _reference: string
         }
         Returns: Json
       }

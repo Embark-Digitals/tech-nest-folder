@@ -28,6 +28,8 @@ export type OrderContext = {
   eft_details?: string | null;
   delivery_note?: string | null;
   support_email?: string | null;
+  courier?: string | null;
+  tracking_number?: string | null;
 };
 
 type Copy = { subject: string; content: Omit<TechNestEmailProps, "order"> };
@@ -94,13 +96,18 @@ export function orderEmailCopy(event: OrderEmailEvent, o: OrderContext): Copy {
         `Order ${n} is packed and waiting for collection by our courier.`,
         o.delivery_note ? [o.delivery_note] : undefined,
       );
-    case "order_dispatched":
+    case "order_dispatched": {
+      const tracking = o.tracking_number
+        ? `${o.courier ? `Courier: ${o.courier}. ` : ""}Tracking number: ${o.tracking_number}.`
+        : null;
+      const lines = [tracking, o.delivery_note ?? null].filter((l): l is string => !!l);
       return wrap(
         `TechNest order ${n} has shipped`,
         "Your order is on its way",
         `Order ${n} has been dispatched for delivery.`,
-        o.delivery_note ? [o.delivery_note] : undefined,
+        lines.length ? lines : undefined,
       );
+    }
     case "order_delivered":
       return wrap(
         `TechNest order ${n} delivered`,
