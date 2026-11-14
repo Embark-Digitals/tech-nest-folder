@@ -21,6 +21,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatZAR } from "@/lib/format";
 import { PIPELINE_LABELS } from "./CrmPanel";
 
+const PAID_STATUSES = ["paid", "partially_refunded"];
+
 const RANGES = { "30": "Last 30 days", "90": "Last 90 days", "365": "Last 12 months", all: "All time" };
 
 export function ReportsPanel() {
@@ -32,8 +34,12 @@ export function ReportsPanel() {
       const [orders, items] = await Promise.all([
         supabase
           .from("orders")
-          .select("id, status, pipeline_stage, total_incl_vat, created_at"),
-        supabase.from("order_items").select("name, quantity, line_total_incl_vat, created_at"),
+          .select(
+            "id, status, payment_status, pipeline_stage, total_incl_vat, refunded_amount, created_at",
+          ),
+        supabase
+          .from("order_items")
+          .select("order_id, name, quantity, line_total_incl_vat, created_at"),
       ]);
       if (orders.error) throw orders.error;
       if (items.error) throw items.error;
@@ -50,12 +56,23 @@ export function ReportsPanel() {
     const items = (data?.items ?? []).filter(
       (i) => new Date(i.created_at).getTime() >= since,
     );
-    const valid = orders.filter((o) => !["cancelled", "refunded"].includes(o.status));
-    const revenue = valid.reduce((s, o) => s + Number(o.total_incl_vat ?? 0), 0);
+    // Revenue is money actually received: paid orders, less any partial refund.
+    // Unpaid order requests are shown separately, never as revenue.
+    const paid = orders.filter((o) => PAID_STATUSES.includes(o.payment_status));
+    const revenue = paid.reduce(
+      (s, o) => s + Number(o.total_incl_vat ?? 0) - Number(o.refunded_amount ?? 0),
+      0,
+    );
+    const unpaid = orders.filter(
+      (o) => o.payment_status === "unpaid" && !["cancelled", "refunded"].includes(o.status),
+    );
+    const unpaidValue = unpaid.reduce((s, o) => s + Number(o.total_incl_vat ?? 0), 0);
     const won = orders.filter((o) => o.pipeline_stage === "won").length;
 
+    const paidIds = new Set(paid.map((o) => o.id));
     const byProduct = new Map<string, { qty: number; value: number }>();
     for (const i of items) {
+      if (!paidIds.has(i.order_id)) continue;
       const prev = byProduct.get(i.name) ?? { qty: 0, value: 0 };
       byProduct.set(i.name, {
         qty: prev.qty + (i.quantity ?? 0),
@@ -77,7 +94,10 @@ export function ReportsPanel() {
     return {
       orderCount: orders.length,
       revenue,
-      avgOrder: valid.length ? revenue / valid.length : 0,
+      paidCount: paid.length,
+      unpaidCount: unpaid.length,
+      unpaidValue,
+      avgOrder: paid.length ? revenue / paid.length : 0,
       conversion: orders.length ? (won / orders.length) * 100 : 0,
       topProducts,
       pipeline,
@@ -101,10 +121,19 @@ export function ReportsPanel() {
         </SelectContent>
       </Select>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Orders" value={String(stats.orderCount)} />
-        <Stat label="Revenue (incl. VAT)" value={formatZAR(stats.revenue)} />
-        <Stat label="Average order" value={formatZAR(stats.avgOrder)} />
+        <Stat
+          label="Paid revenue (incl. VAT)"
+          value={formatZAR(stats.revenue)}
+          hint={`${stats.paidCount} paid order${stats.paidCount === 1 ? "" : "s"}, after refunds`}
+        />
+        <Stat
+          label="Awaiting payment"
+          value={formatZAR(stats.unpaidValue)}
+          hint={`${stats.unpaidCount} open request${stats.unpaidCount === 1 ? "" : "s"}, not revenue`}
+        />
+        <Stat label="Average paid order" value={formatZAR(stats.avgOrder)} />
         <Stat label="Won rate" value={`${stats.conversion.toFixed(1)}%`} />
       </div>
 
@@ -124,7 +153,9 @@ export function ReportsPanel() {
         </Card>
 
         <Card className="p-4">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em]">Top products</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.12em]">
+            Top products (paid orders)
+          </h3>
           <Table>
             <TableHeader>
               <TableRow>
@@ -144,7 +175,7 @@ export function ReportsPanel() {
               {stats.topProducts.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} className="py-6 text-center text-muted-foreground">
-                    No sales in this period.
+                    No paid sales in this period.
                   </TableCell>
                 </TableRow>
               )}
@@ -156,11 +187,12 @@ export function ReportsPanel() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card className="p-4">
       <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
       <p className="mt-1 font-display text-2xl font-bold">{value}</p>
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </Card>
   );
 }
