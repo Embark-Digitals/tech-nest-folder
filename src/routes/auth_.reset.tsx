@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/auth/reset")({
+export const Route = createFileRoute("/auth_/reset")({
   ssr: false,
   head: () => ({
     meta: [
@@ -65,7 +65,7 @@ function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Password updated — you are signed in.");
+    toast.success("Password updated â€” you are signed in.");
     navigate({ to: "/account" });
   };
 
@@ -74,7 +74,7 @@ function ResetPasswordPage() {
       <h1 className="text-center font-display text-3xl font-bold">Choose a new password</h1>
 
       <Card className="mt-8 p-6">
-        {ready === "checking" && <p className="text-sm text-muted-foreground">Checking your reset link…</p>}
+        {ready === "checking" && <p className="text-sm text-muted-foreground">Checking your reset linkâ€¦</p>}
 
         {ready === "invalid" && (
           <div className="space-y-4 text-sm">

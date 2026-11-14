@@ -33,12 +33,17 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { data: categories } = useQuery(categoriesQuery);
-  const { data: products, isLoading } = useQuery(productsQuery({ sort: "new" }));
+  // Each home section asks the database for its own products, so none of them
+  // depends on what happens to be in the newest page of the catalogue.
+  const { data: newest, isLoading } = useQuery(productsQuery({ sort: "new", limit: 24 }));
+  const { data: featuredData } = useQuery(productsQuery({ sort: "new", flag: "is_featured", limit: 10 }));
+  const { data: promoData } = useQuery(productsQuery({ sort: "new", flag: "is_promotional", limit: 5 }));
+  const { data: newData } = useQuery(productsQuery({ sort: "new", flag: "is_new_arrival", limit: 5 }));
 
-  const all = products ?? [];
-  const featured = all.filter((p) => p.is_featured).slice(0, 10);
-  const promos = all.filter((p) => p.is_promotional).slice(0, 5);
-  const newArrivals = all.filter((p) => p.is_new_arrival).slice(0, 5);
+  const all = newest?.rows ?? [];
+  const featured = featuredData?.rows ?? [];
+  const promos = promoData?.rows ?? [];
+  const newArrivals = newData?.rows ?? [];
   const hero = all.find((p) => primaryImage(p)) ?? all[0];
   const heroImage = hero ? primaryImage(hero) : null;
   const tiles = all.filter((p) => primaryImage(p) && p.id !== hero?.id).slice(0, 3);

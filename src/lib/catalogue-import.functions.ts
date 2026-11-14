@@ -34,11 +34,19 @@ const rowSchema = z.object({
   ignored_as: z.string().nullable(),
 });
 
+/** Supplier price lists. "Missing" detection only compares products on the same list. */
+export const PRICE_LISTS = {
+  atlas_home_appliances: "Atlas – Home appliances",
+  atlas_audio_visual: "Atlas – Audio visual",
+} as const;
+export type PriceListKey = keyof typeof PRICE_LISTS;
+
 const createSchema = z.object({
   file_name: z.string().min(1).max(300),
   checksum: z.string().length(64),
   storage_path: z.string().max(500).nullable(),
   supplier: z.string().max(120).nullable(),
+  price_list: z.enum(["atlas_home_appliances", "atlas_audio_visual"]).nullable().default(null),
   catalogue_date: z.string().max(20).nullable(),
   format: z.string().max(30),
   parser_version: z.string().max(80),
@@ -143,7 +151,7 @@ export const createSupplierImport = createServerFn({ method: "POST" })
     const { data: products } = await supabaseAdmin
       .from("products")
       .select(
-        "id, sku, supplier_sku, model_number, part_number, name, short_description, full_description, specifications_text, dealer_price_ex_vat, promotional_price_ex_vat, selling_price_incl_vat, source_availability_raw, brand_id, category_id, brand_verified, category_verified, is_published, is_discontinued",
+        "id, sku, supplier_sku, model_number, part_number, name, short_description, full_description, specifications_text, dealer_price_ex_vat, promotional_price_ex_vat, selling_price_incl_vat, source_availability_raw, brand_id, category_id, brand_verified, category_verified, is_published, is_discontinued, markup_rate, review_locked",
       );
     const list = ((products ?? []) as unknown[]) as any[];
     const bySupplierSku = new Map<string, any>();
@@ -187,6 +195,7 @@ export const createSupplierImport = createServerFn({ method: "POST" })
         file_checksum: data.checksum,
         storage_path: data.storage_path,
         supplier: data.supplier,
+        price_list: data.price_list,
         catalogue_date: data.catalogue_date,
         parser_version: data.parser_version,
         extraction_method: data.format,
@@ -203,6 +212,11 @@ export const createSupplierImport = createServerFn({ method: "POST" })
     if (batchError || !batch) return { ok: false as const, error: batchError?.message ?? "Could not create import batch." };
 
     // --- build proposed changes -----------------------------------------
+    // PDF rows are rebuilt from text: their prices and availability are
+    // reliable, their names and specifications are not.
+    const fromPdf = data.format === "pdf_text";
+    /** "HISENSE 32A4Q" ↔ "32A4Q": supplier files are inconsistent about brand prefixes. */
+    const stripBrand = (code: string) => code.replace(/^[A-Z]+\s+(?=\S*\d)/, "");
     const matchedIds = new Set<string>();
     const inserts = data.rows
       .filter((r) => !r.ignored_as || r.ignored_as === "duplicate")
@@ -279,9 +293,15 @@ export const createSupplierImport = createServerFn({ method: "POST" })
           match = byPart.get(r.part_number.toUpperCase()); method = "part_number"; score = 93;
         } else if (sku && bySku.has(sku)) {
           match = bySku.get(sku); method = "technest_sku"; score = 90;
-        } else if (r.product_name && byName.has(norm(r.product_name))) {
+        } else if (sku && stripBrand(sku) !== sku &&
+                   (bySupplierSku.has(stripBrand(sku)) || bySku.has(stripBrand(sku)) || byModel.has(stripBrand(sku)))) {
+          const bare = stripBrand(sku);
+          match = bySupplierSku.get(bare) ?? bySku.get(bare) ?? byModel.get(bare); method = "code_without_brand_prefix"; score = 92;
+        } else if (sku && [...bySku.keys()].some((k) => stripBrand(k) === sku)) {
+          match = bySku.get([...bySku.keys()].find((k) => stripBrand(k) === sku)!); method = "code_without_brand_prefix"; score = 92;
+        } else if (!fromPdf && r.product_name && byName.has(norm(r.product_name))) {
           match = byName.get(norm(r.product_name)); method = "exact_normalised_name"; score = 78;
-        } else if (r.product_name) {
+        } else if (!fromPdf && r.product_name) {
           const scored = list
             .map((p) => ({ p, s: similarity(r.product_name!, p.name) }))
             .filter((x) => x.s >= 0.86)
@@ -312,6 +332,8 @@ export const createSupplierImport = createServerFn({ method: "POST" })
             mappingNotes.push(
               `Supplier lists this new line as "${r.availability_raw}" — it will be created as discontinued and stay unpublished.`,
             );
+          if (fromPdf)
+            mappingNotes.push("Read from a PDF — check the product name, brand and category before approving.");
           return {
             ...base,
             change_type: newButDead ? "discontinued" : "new",
@@ -355,14 +377,28 @@ export const createSupplierImport = createServerFn({ method: "POST" })
         // Low-confidence matches may never overwrite verified, filled values.
         const lowConfidence = score < 90;
 
-        if (!lowConfidence) propose("name", match.name, r.product_name);
-        // Do not replace a longer, filled description with a shorter extracted one
-        if (!match.short_description || (r.short_description ?? "").length >= (match.short_description ?? "").length) {
-          propose("short_description", match.short_description, r.short_description);
+        // Names and specifications rebuilt from PDF text never overwrite existing ones.
+        if (!fromPdf) {
+          if (!lowConfidence) propose("name", match.name, r.product_name);
+          // Do not replace a longer, filled description with a shorter extracted one
+          if (!match.short_description || (r.short_description ?? "").length >= (match.short_description ?? "").length) {
+            propose("short_description", match.short_description, r.short_description);
+          }
         }
         if (!match.specifications_text) propose("specifications_text", match.specifications_text, r.specifications_text);
-        propose("dealer_price_ex_vat", match.dealer_price_ex_vat, r.dealer_price_ex_vat);
-        propose("promotional_price_ex_vat", match.promotional_price_ex_vat, r.promotional_price_ex_vat);
+
+        // Prices follow the list exactly: when the list prices a product at all,
+        // a price it leaves blank (e.g. an ended promo) is cleared rather than
+        // kept, so a stale promo can never keep setting the selling price.
+        const rowHasPrice = r.dealer_price_ex_vat !== null || r.promotional_price_ex_vat !== null;
+        if (rowHasPrice) {
+          for (const f of ["dealer_price_ex_vat", "promotional_price_ex_vat"] as const) {
+            const oldV = match[f] === null || match[f] === undefined ? null : Number(match[f]);
+            const newV = r[f];
+            if (oldV === newV) continue;
+            changes[f] = { old: oldV, new: newV, source: src, confidence: band(score) };
+          }
+        }
         propose("source_availability_raw", match.source_availability_raw, r.availability_raw);
         if (brandHit && !match.brand_id && !match.brand_verified)
           propose("brand_id", match.brand_id, brandHit.id, "medium", brandHit.name);
@@ -371,16 +407,30 @@ export const createSupplierImport = createServerFn({ method: "POST" })
 
         const changeType = isDiscontinued ? "discontinued" : Object.keys(changes).length ? "update" : "unchanged";
 
+        // Preview the price this product will actually get: its own markup on
+        // the new cost base (promo, else dealer), exactly as the DB trigger does.
+        const newPromo = "promotional_price_ex_vat" in changes ? r.promotional_price_ex_vat : match.promotional_price_ex_vat;
+        const newDealer = "dealer_price_ex_vat" in changes ? r.dealer_price_ex_vat : match.dealer_price_ex_vat;
+        const costBase =
+          Number(newPromo) > 0 ? Number(newPromo) : Number(newDealer) > 0 ? Number(newDealer) : null;
+        const preview = computeSellingPrice(costBase, {
+          ...(pricing as any),
+          markup_rate: match.markup_rate ?? (pricing as any).markup_rate,
+        });
+        (base.normalised as any).supplier_price_ex_vat = costBase;
+
         const reasons = [
           method === "probable_name_similarity"
             ? "Loose name match — confirm this is the same product before approving."
             : null,
           lowConfidence ? "Low-confidence match: verified product names are never overwritten." : null,
+          match.review_locked ? "Locked for manual review — applying will not change this product." : null,
           ...mappingNotes,
         ].filter(Boolean);
 
         return {
           ...base,
+          computed_price_incl_vat: preview,
           matched_product_id: match.id,
           match_method: method,
           match_reason:
@@ -412,10 +462,10 @@ export const createSupplierImport = createServerFn({ method: "POST" })
     // listed for review as "missing" rows — never unpublished automatically.
     const absent = list.filter((p) => !matchedIds.has(p.id) && !p.is_discontinued).length;
     let missingRows = 0;
-    if (data.supplier) {
+    if (data.price_list || data.supplier) {
       const { data: n } = await context.supabase.rpc("flag_absent_products", {
         _import_id: batch.id,
-        _supplier: data.supplier,
+        _supplier: data.supplier ?? "",
       });
       missingRows = Number(n ?? 0);
     }
@@ -475,11 +525,15 @@ export const decideImportRows = createServerFn({ method: "POST" })
       q = q.in("change_type", ["new", "update", "discontinued"]);
     }
 
-    // Only applicable, valid rows may ever be approved — ambiguous, invalid,
-    // duplicate and missing rows stay out of the apply set no matter what the
-    // browser selected.
+    // Only applicable, valid rows may ever be approved — ambiguous, invalid and
+    // duplicate rows stay out of the apply set no matter what the browser
+    // selected. "Missing" rows (approve = hide from the shop) can only be
+    // approved one by one, never in bulk.
     if (data.decision === "approved") {
-      q = q.in("change_type", ["new", "update", "discontinued"]).is("validation_error", null);
+      const approvable = data.scope === "selected"
+        ? ["new", "update", "discontinued", "missing"]
+        : ["new", "update", "discontinued"];
+      q = q.in("change_type", approvable as never[]).is("validation_error", null);
     }
 
 

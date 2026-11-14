@@ -20,8 +20,8 @@ export function formatDate(value: string) {
 export const STOCK_LABELS: Record<string, string> = {
   available: "In stock",
   low_stock: "Low stock",
-  awaiting_confirmation: "Awaiting stock confirmation",
-  preorder: "Pre-order",
+  awaiting_confirmation: "Stock confirmed on order",
+  preorder: "Coming soon",
   out_of_stock: "Out of stock",
   discontinued: "Discontinued",
 };

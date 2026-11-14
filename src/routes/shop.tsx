@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { canonicalHead } from "@/lib/site";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProductCard } from "@/components/site/ProductCard";
-import { brandsQuery, categoriesQuery, productsQuery } from "@/lib/catalogue";
+import { brandsQuery, categoriesQuery, PAGE_SIZE, productsQuery } from "@/lib/catalogue";
 
 const searchSchema = z.object({
   q: z.string().optional(),
@@ -46,14 +47,20 @@ function Shop() {
   const navigate = useNavigate({ from: "/shop" });
   const { data: categories } = useQuery(categoriesQuery);
   const { data: brands } = useQuery(brandsQuery);
-  const { data: products, isLoading } = useQuery(
-    productsQuery({
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  useEffect(() => setLimit(PAGE_SIZE), [search.q, search.category, search.brand, search.sort]);
+  const { data, isLoading, isFetching } = useQuery({
+    ...productsQuery({
       search: search.q,
       category: search.category,
       brand: search.brand,
       sort: search.sort,
+      limit,
     }),
-  );
+    placeholderData: keepPreviousData,
+  });
+  const products = data?.rows;
+  const total = data?.total ?? 0;
 
   type ShopSearch = z.infer<typeof searchSchema>;
   const update = (patch: Partial<ShopSearch>) =>
@@ -64,7 +71,7 @@ function Shop() {
     <div className="mx-auto max-w-7xl px-4 py-10">
       <h1 className="font-display text-3xl font-bold">Shop all products</h1>
       <p className="mt-1 text-muted-foreground">
-        {products?.length ?? 0} products · all prices in ZAR incl. 15% VAT
+        {total} products · all prices in ZAR incl. 15% VAT
       </p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -124,6 +131,17 @@ function Shop() {
           ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-96 w-full" />)
           : (products ?? []).map((p) => <ProductCard key={p.id} product={p} />)}
       </div>
+
+      {!isLoading && (products?.length ?? 0) < total && (
+        <div className="mt-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Showing {products?.length ?? 0} of {total}
+          </p>
+          <Button variant="outline" className="mt-3" disabled={isFetching} onClick={() => setLimit((l) => l + PAGE_SIZE)}>
+            {isFetching ? "Loading…" : "Load more"}
+          </Button>
+        </div>
+      )}
 
       {!isLoading && (products?.length ?? 0) === 0 && (
         <div className="py-20 text-center">

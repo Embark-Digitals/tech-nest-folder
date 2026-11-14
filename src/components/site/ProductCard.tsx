@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StockBadge } from "@/components/site/StockBadge";
 import { formatZAR } from "@/lib/format";
-import { primaryImage, type ProductRow } from "@/lib/catalogue";
+import { isBuyable, primaryImage, type ProductRow } from "@/lib/catalogue";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 
 export function ProductCard({ product }: { product: ProductRow }) {
   const cart = useCart();
   const image = primaryImage(product);
-  const buyable = product.selling_price_incl_vat != null && product.stock_status !== "out_of_stock";
+  const buyable = isBuyable(product);
 
   return (
     <div className="group flex h-full flex-col">
