@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { formatZAR } from "@/lib/format";
+import { formatZAR, provinceName } from "@/lib/format";
 import {
   DELIVERY_CLASS_LABELS,
   deliveryClassRulesQuery,
@@ -520,7 +520,7 @@ function EnquiriesCard() {
                 </TableCell>
                 <TableCell className="text-sm">
                   {e.city ? `${e.city}, ` : ""}
-                  {e.province} {e.postal_code}
+                  {provinceName(e.province)} {e.postal_code}
                 </TableCell>
                 <TableCell className="text-sm">
                   {e.estimated_subtotal_incl_vat

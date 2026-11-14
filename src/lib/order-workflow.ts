@@ -7,6 +7,8 @@
  * Record refund — never from the status menu. Nothing moves to processing,
  * dispatch or delivery until a payment has been recorded.
  */
+import { provinceName } from "@/lib/format";
+
 export const NEXT_STATUSES: Record<string, string[]> = {
   new: ["awaiting_stock_confirmation", "stock_confirmed", "awaiting_payment", "cancelled"],
   awaiting_stock_confirmation: ["stock_confirmed", "cancelled"],
@@ -71,7 +73,12 @@ export type DeliveryAddress = {
 export function formatAddress(a: unknown): string[] {
   if (!a || typeof a !== "object") return [];
   const d = a as DeliveryAddress;
-  return [d.line1, d.suburb, [d.city, d.postal_code].filter(Boolean).join(" "), d.province]
+  return [
+    d.line1,
+    d.suburb,
+    [d.city, d.postal_code].filter(Boolean).join(" "),
+    provinceName(d.province),
+  ]
     .map((s) => (s ?? "").toString().trim())
     .filter(Boolean);
 }

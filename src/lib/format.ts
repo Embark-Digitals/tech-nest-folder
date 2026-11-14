@@ -48,4 +48,23 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   partially_refunded: "Partly refunded",
 };
 
+/** Codes used by `shipping_provinces` and stored in delivery addresses. */
+export const PROVINCE_NAMES: Record<string, string> = {
+  GP: "Gauteng",
+  NW: "North West",
+  LP: "Limpopo",
+  MP: "Mpumalanga",
+  FS: "Free State",
+  KZN: "KwaZulu-Natal",
+  EC: "Eastern Cape",
+  WC: "Western Cape",
+  NC: "Northern Cape",
+};
+
+/** "GP" → "Gauteng"; anything unknown is shown as stored. */
+export function provinceName(code: string | null | undefined): string {
+  const c = (code ?? "").trim();
+  return PROVINCE_NAMES[c.toUpperCase()] ?? c;
+}
+
 export const VAT_RATE = 0.15;
