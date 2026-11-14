@@ -387,6 +387,7 @@ export type Database = {
           is_test: boolean
           original_filename: string | null
           parser_version: string | null
+          price_list: string | null
           pricing_snapshot: Json | null
           rejected_count: number
           review_count: number
@@ -415,6 +416,7 @@ export type Database = {
           is_test?: boolean
           original_filename?: string | null
           parser_version?: string | null
+          price_list?: string | null
           pricing_snapshot?: Json | null
           rejected_count?: number
           review_count?: number
@@ -443,6 +445,7 @@ export type Database = {
           is_test?: boolean
           original_filename?: string | null
           parser_version?: string | null
+          price_list?: string | null
           pricing_snapshot?: Json | null
           rejected_count?: number
           review_count?: number
@@ -1185,6 +1188,7 @@ export type Database = {
           override_reason: string | null
           part_number: string | null
           previous_price_incl_vat: number | null
+          price_list: string | null
           pricing_review_required: boolean
           promotional_price_ex_vat: number | null
           quantity: number | null
@@ -1253,6 +1257,7 @@ export type Database = {
           override_reason?: string | null
           part_number?: string | null
           previous_price_incl_vat?: number | null
+          price_list?: string | null
           pricing_review_required?: boolean
           promotional_price_ex_vat?: number | null
           quantity?: number | null
@@ -1321,6 +1326,7 @@ export type Database = {
           override_reason?: string | null
           part_number?: string | null
           previous_price_incl_vat?: number | null
+          price_list?: string | null
           pricing_review_required?: boolean
           promotional_price_ex_vat?: number | null
           quantity?: number | null

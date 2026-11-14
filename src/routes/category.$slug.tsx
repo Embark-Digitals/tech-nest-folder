@@ -1,9 +1,10 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/site/ProductCard";
-import { categoriesQuery, productsQuery } from "@/lib/catalogue";
+import { categoriesQuery, PAGE_SIZE, productsQuery } from "@/lib/catalogue";
 import { canonicalHead } from "@/lib/site";
 
 export const Route = createFileRoute("/category/$slug")({
@@ -31,7 +32,14 @@ export const Route = createFileRoute("/category/$slug")({
 function CategoryPage() {
   const { slug } = Route.useParams();
   const { data: categories } = useQuery(categoriesQuery);
-  const { data: products, isLoading } = useQuery(productsQuery({ category: slug }));
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  useEffect(() => setLimit(PAGE_SIZE), [slug]);
+  const { data, isLoading, isFetching } = useQuery({
+    ...productsQuery({ category: slug, limit }),
+    placeholderData: keepPreviousData,
+  });
+  const products = data?.rows;
+  const total = data?.total ?? 0;
   const category = (categories ?? []).find((c) => c.slug === slug);
 
   return (
@@ -52,6 +60,17 @@ function CategoryPage() {
           ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-96 w-full" />)
           : (products ?? []).map((p) => <ProductCard key={p.id} product={p} />)}
       </div>
+
+      {!isLoading && (products?.length ?? 0) < total && (
+        <div className="mt-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Showing {products?.length ?? 0} of {total}
+          </p>
+          <Button variant="outline" className="mt-3" disabled={isFetching} onClick={() => setLimit((l) => l + PAGE_SIZE)}>
+            {isFetching ? "Loading…" : "Load more"}
+          </Button>
+        </div>
+      )}
 
       {!isLoading && (products?.length ?? 0) === 0 && (
         <div className="py-20 text-center">
