@@ -178,8 +178,9 @@ function CataloguePanel() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-products"],
     queryFn: async () => {
+      // Staff-only RPC: supplier cost columns are not readable by ordinary signed-in users.
       const { data, error } = await supabase
-        .from("products")
+        .rpc("staff_products")
         .select(
           "id, sku, name, stock_status, promotional_price_ex_vat, selling_price_incl_vat, manual_price_override, is_published, pricing_review_required, brand_id, brand_review_required, product_images(id)",
         )
@@ -397,7 +398,7 @@ function PricingPanel({ userId }: { userId: string }) {
 
   const recalcAll = async () => {
     setBusy(true);
-    const { data: products } = await supabase.from("products").select("id, markup_rate");
+    const { data: products } = await supabase.from("products").select("id");
     for (const p of products ?? []) {
       await supabase.from("products").update({ markup_rate: data!.markup_rate }).eq("id", p.id);
     }

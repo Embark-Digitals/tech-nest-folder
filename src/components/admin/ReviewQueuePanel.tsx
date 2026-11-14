@@ -84,8 +84,9 @@ export function ReviewQueuePanel() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "review-queue"],
     queryFn: async () => {
+      // Staff-only RPC: supplier cost columns are not readable by ordinary signed-in users.
       const { data, error } = await supabase
-        .from("products")
+        .rpc("staff_products")
         .select(
           "id, sku, name, is_published, image_required, brand_review_required, supplier_price_anomaly, spec_review_required, review_locked, catalogue_review_reason, supplier_sku, model_number, dealer_price_ex_vat, promotional_price_ex_vat, source_workbook, source_worksheet, source_row_number",
         )

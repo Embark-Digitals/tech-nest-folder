@@ -1930,6 +1930,16 @@ export type Database = {
       }
       release_order_stock: { Args: { _order_id: string }; Returns: undefined }
       rollback_catalogue_import: { Args: { _import_id: string }; Returns: Json }
+      staff_products: {
+        Args: never
+        Returns: Database["public"]["Tables"]["products"]["Row"][]
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       set_order_status: {
         Args: {
           _note?: string
