@@ -3,7 +3,6 @@ import { noindexMeta } from "@/lib/site";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { trackOnce } from "@/lib/analytics";
 import { ContactInboxPanel } from "@/components/admin/ContactInboxPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -30,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth, useRoles } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate, formatZAR, ORDER_STATUS_LABELS, STOCK_LABELS } from "@/lib/format";
+import { formatZAR, STOCK_LABELS } from "@/lib/format";
 import { CrmPanel } from "@/components/admin/CrmPanel";
 import { TeamPanel } from "@/components/admin/TeamPanel";
 import { ReportsPanel } from "@/components/admin/ReportsPanel";
@@ -39,8 +37,7 @@ import { EmailLogPanel } from "@/components/admin/EmailLogPanel";
 import { ShippingPanel } from "@/components/admin/ShippingPanel";
 import { BusinessInfoPanel } from "@/components/admin/BusinessInfoPanel";
 import { ReviewQueuePanel } from "@/components/admin/ReviewQueuePanel";
-import { useServerFn } from "@tanstack/react-start";
-import { notifyOrderEvent } from "@/lib/email.functions";
+import { OrdersPanel } from "@/components/admin/OrdersPanel";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -102,7 +99,7 @@ function AdminPage() {
           {isAdmin && <TabsTrigger value="team">Team</TabsTrigger>}
         </TabsList>
         <TabsContent value="orders" className="pt-6">
-          <OrdersPanel isAdmin={isAdmin} />
+          <OrdersPanel isAdmin={isAdmin} currentUserId={user.id} />
         </TabsContent>
         <TabsContent value="crm" className="pt-6">
           <CrmPanel currentUserId={user.id} />
@@ -147,190 +144,6 @@ function AdminPage() {
     </div>
   );
 }
-
-function OrdersPanel({ isAdmin }: { isAdmin: boolean }) {
-  const qc = useQueryClient();
-  const [eftOrder, setEftOrder] = useState<{ id: string; number: string; total: number } | null>(null);
-  const [eftRef, setEftRef] = useState("");
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "id, order_number, contact_name, contact_email, status, total_incl_vat, created_at, payment_status, payment_method, payment_source, payment_reference",
-        )
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const notify = useServerFn(notifyOrderEvent);
-
-  const STATUS_EMAIL: Record<string, string> = {
-    stock_confirmed: "order_status_stock_confirmed",
-    awaiting_payment: "order_eft_instructions",
-    paid: "order_payment_received",
-    processing: "order_status_processing",
-    ready_for_dispatch: "order_status_ready_for_dispatch",
-    shipped: "order_dispatched",
-    delivered: "order_delivered",
-    cancelled: "order_cancelled",
-    refunded: "order_refunded",
-  };
-
-  const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.rpc("set_order_status", {
-      _order_id: id,
-      _status: status as never,
-      _note: "Updated from admin console",
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Order updated");
-    qc.invalidateQueries({ queryKey: ["admin-orders"] });
-
-    // Reversal analytics use server-stored totals and are deduplicated by order
-    // id so a repeated status change cannot double-count a negative conversion.
-    const row = (data ?? []).find((o) => o.id === id);
-    const value = Number(row?.total_incl_vat ?? 0);
-    if (status === "cancelled") {
-      trackOnce("order_cancelled", id, {
-        transaction_id: row?.order_number,
-        value,
-        was_paid: row?.payment_status === "paid",
-      });
-    }
-    if (status === "refunded") {
-      trackOnce("refund", id, { transaction_id: row?.order_number, value });
-    }
-
-    // Notification is best-effort — a failure is logged in the Emails tab.
-    void notify({ data: { order_id: id, event: (STATUS_EMAIL[status] ?? "order_status_update") as never } });
-  };
-
-  const confirmEft = async () => {
-    if (!eftOrder) return;
-    const { error } = await supabase.rpc("confirm_manual_eft", {
-      _order_id: eftOrder.id,
-      _payment_reference: eftRef,
-      _amount_incl_vat: eftOrder.total,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Manual EFT recorded");
-    // Payment is now authorised and settled, so this is the only point at which
-    // revenue may be reported. Value comes from the server-stored order total.
-    trackOnce("payment_confirmed", eftOrder.id, {
-      transaction_id: eftOrder.number,
-      value: eftOrder.total,
-      payment_method: "manual_eft",
-    });
-    trackOnce("purchase", eftOrder.id, {
-      transaction_id: eftOrder.number,
-      value: eftOrder.total,
-      payment_method: "manual_eft",
-    });
-    void notify({ data: { order_id: eftOrder.id, event: "order_payment_received" } });
-    setEftOrder(null);
-    setEftRef("");
-    qc.invalidateQueries({ queryKey: ["admin-orders"] });
-  };
-
-
-  if (isLoading) return <Skeleton className="h-64 w-full" />;
-
-  return (
-    <Card className="p-0">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Order</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Payment</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(data ?? []).map((o) => (
-            <TableRow key={o.id}>
-              <TableCell className="font-medium">{o.order_number}</TableCell>
-              <TableCell>
-                {o.contact_name}
-                <span className="block text-xs text-muted-foreground">{o.contact_email}</span>
-              </TableCell>
-              <TableCell>{formatDate(o.created_at)}</TableCell>
-              <TableCell>{formatZAR(Number(o.total_incl_vat))}</TableCell>
-              <TableCell className="text-xs">
-                <span className="font-medium uppercase">{o.payment_status}</span>
-                <span className="block text-muted-foreground">
-                  {o.payment_method}
-                  {o.payment_reference ? ` · ${o.payment_reference}` : ""}
-                </span>
-                {isAdmin && o.payment_status !== "paid" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-1"
-                    onClick={() =>
-                      setEftOrder({ id: o.id, number: o.order_number, total: Number(o.total_incl_vat) })
-                    }
-                  >
-                    Confirm EFT
-                  </Button>
-                )}
-              </TableCell>
-              <TableCell>
-                <Select value={o.status} onValueChange={(v) => setStatus(o.id, v)}>
-                  <SelectTrigger className="w-56">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-            </TableRow>
-          ))}
-          {(data ?? []).length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                No orders yet.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-
-      <Dialog open={!!eftOrder} onOpenChange={(open: boolean) => !open && setEftOrder(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm manual EFT</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {eftOrder?.number} · {eftOrder ? formatZAR(eftOrder.total) : ""}
-          </p>
-          <Input
-            placeholder="Bank payment reference"
-            value={eftRef}
-            onChange={(e) => setEftRef(e.target.value)}
-            maxLength={60}
-          />
-          <Button onClick={confirmEft} disabled={eftRef.trim().length < 3}>
-            Record payment received
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
 
 type CatalogueFilter =
   | "all"

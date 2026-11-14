@@ -41,4 +41,11 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   refunded: "Refunded",
 };
 
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  unpaid: "Unpaid",
+  paid: "Paid",
+  refunded: "Refunded",
+  partially_refunded: "Partly refunded",
+};
+
 export const VAT_RATE = 0.15;

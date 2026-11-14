@@ -37,6 +37,8 @@ function AccountPage() {
         .select(
           "id, order_number, status, total_incl_vat, delivery_fee, delivery_method, delivery_zone_name, delivery_estimate, created_at, order_items(name, quantity)",
         )
+        // Staff can read every order; "My orders" must only show this account's own.
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

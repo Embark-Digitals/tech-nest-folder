@@ -109,6 +109,12 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
+    const { data: fulfilment } = await supabaseAdmin
+      .from("order_fulfilment")
+      .select("courier, tracking_number")
+      .eq("order_id", order.id)
+      .maybeSingle();
+
     const cfg = getEmailConfig();
     const orderBlock = {
       order_number: order.order_number,
@@ -130,6 +136,8 @@ export const notifyOrderEvent = createServerFn({ method: "POST" })
       eft_details: settings?.eft_details ?? null,
       delivery_note: settings?.delivery_note ?? null,
       support_email: cfg.supportAddress ?? settings?.store_email ?? null,
+      courier: fulfilment?.courier ?? null,
+      tracking_number: fulfilment?.tracking_number ?? null,
     });
 
     const staffRecipient = cfg.orderNotificationAddress ?? settings?.store_email ?? null;
